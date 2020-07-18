@@ -1,0 +1,11 @@
+{:deps true
+ :builds
+ {:frontend
+  {:target :browser
+   :modules {:main {:init-fn tavern.core/init}}
+   :compiler-options {:closure-defines {re-frame.trace.trace-enabled? true}
+                      :infer-externs :auto}
+   :devtools {:http-root "public"
+              :http-port 8080
+              :preloads [devtools.preload
+                         day8.re-frame-10x.preload]}}}}
