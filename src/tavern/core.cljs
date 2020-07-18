@@ -1,34 +1,39 @@
 (ns tavern.core
-  (:require ["peerjs" :as peerjs]
-            [reagent.core :as reagent]
-            [reagent.dom :as rdom]
-            [re-frame.core :as rf]
-            [tavern.routes :as routes]
-            [clojure.string :as str]))
+  (:require
+   ["peerjs" :as peerjs]
+   [reagent.core :as reagent]
+   [reagent.dom :as rdom]
+   [re-frame.core :as rf]
+   [clojure.string :as str]
+
+   [tavern.routes :as routes]
+   [tavern.intervals :as ti]
+   [tavern.events :as events]))
 
 (set! *warn-on-infer* true)
 
-(defn dispatch-timer-event []
-  (let [now (js/Date.)]
-    (rf/dispatch [:timer now])))
+(defn reg-subs []
+  (rf/clear-sub)
 
-(defonce do-timer
-  (js/setInterval dispatch-timer-event 1000))
+  (rf/reg-sub
+   :time
+   (fn [db _]
+     (get db :time (js/Date.))))
 
-(rf/reg-sub
- :time
- (fn [db _]
-   (:time db)))
+  (rf/reg-sub
+   :active-panel
+   (fn [db _]
+     (:active-panel db)))
 
-(rf/reg-sub
- :active-panel
- (fn [db _]
-   (:active-panel db)))
+  (rf/reg-sub
+   :peer-id
+   (fn [db _]
+     (get db :peer-id nil)))
 
-(rf/reg-sub
- :peer-id
- (fn [db _]
-   (.-id (:peer db))))
+  (rf/reg-sub
+   :peers
+   (fn [db _]
+     (get db :peers []))))
 
 (defn clock []
   [:div.example-clock
@@ -40,6 +45,7 @@
 (defn home-panel []
   [:div (str "This is the Home Page.")
    [:div @(rf/subscribe [:peer-id])]
+   [:div (str @(rf/subscribe [:peers]))]
    [:div [:a {:href (routes/url-for :about)} "go to About Page"]]])
 
 (defn about-panel []
@@ -75,6 +81,10 @@
 (defn ^:dev/after-load start []
   (js/console.log "start")
   (routes/app-routes)
+  (rf/clear-subscription-cache!)
+  (ti/interval-handler {:action :clean})
+  (reg-subs)
+  (events/getMediaStream)
   (render))
 
 (defn ^:export init []

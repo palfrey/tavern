@@ -16,7 +16,7 @@
   },
   "scripts": {
     "watch": "shadow-cljs watch frontend",
-    "server": "peerjs --port 9000 --key peerjs",
+    "server": "peerjs --port 9000 --key peerjs --allow_discovery",
     "fmt": "clj -R:fmt fmt.clj",
     "dev": "run-p fmt watch"
   }
