@@ -8,11 +8,6 @@
 
 (set! *warn-on-infer* true)
 
-(rf/reg-event-db
- :initialize
- (fn [_ _]
-   {:time (js/Date.)}))
-
 (defn dispatch-timer-event []
   (let [now (js/Date.)]
     (rf/dispatch [:timer now])))
@@ -20,25 +15,20 @@
 (defonce do-timer
   (js/setInterval dispatch-timer-event 1000))
 
-(rf/reg-event-db
- :timer
- (fn [db [_ new-time]]
-   (assoc db :time new-time)))
-
 (rf/reg-sub
  :time
  (fn [db _]
    (:time db)))
 
 (rf/reg-sub
- ::active-panel
+ :active-panel
  (fn [db _]
    (:active-panel db)))
 
-(rf/reg-event-db
- :timer
- (fn [db [_ new-time]]
-   (assoc db :time new-time)))
+(rf/reg-sub
+ :peer-id
+ (fn [db _]
+   (.-id (:peer db))))
 
 (defn clock []
   [:div.example-clock
@@ -49,6 +39,7 @@
 
 (defn home-panel []
   [:div (str "This is the Home Page.")
+   [:div @(rf/subscribe [:peer-id])]
    [:div [:a {:href (routes/url-for :about)} "go to About Page"]]])
 
 (defn about-panel []
@@ -65,7 +56,7 @@
   [panels panel-name])
 
 (defn main-panel []
-  (let [active-panel (rf/subscribe [::active-panel])]
+  (let [active-panel (rf/subscribe [:active-panel])]
     [show-panel @active-panel]))
 
 (defn ui []
