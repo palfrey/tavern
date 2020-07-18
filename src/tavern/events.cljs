@@ -17,7 +17,8 @@
  :initialize
  (fn [db [_ _]]
    (let [id (:peer-id db)
-         peer (js/Peer. id (js-obj :key "peerjs" "host" "localhost" "port" 9000 "debug" 2))]
+         peer (js/Peer. id (js-obj :key "peerjs" "host" "localhost" "port" 9000 "debug" 2
+                                   "iceServers" [{"urls" "stun:stun.l.google.com:19302"}]))]
      (if (nil? id)
        (.on peer "open"
             (fn [id]
