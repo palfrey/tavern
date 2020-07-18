@@ -70,7 +70,7 @@
 
 (defn ui []
   [:div
-   [:h1 "Hello world, it is now"]
+   [:h1 "Tavern"]
    [clock]
    [main-panel]])
 
@@ -78,8 +78,15 @@
   (rdom/render [ui]
                (js/document.getElementById "root")))
 
+(defn ^:dev/before-load stop []
+  (js/console.log "stop"))
+
+(defn ^:dev/after-load start []
+  (js/console.log "start")
+  (routes/app-routes)
+  (render))
+
 (defn ^:export init []
   (js/console.log "init")
-  (routes/app-routes)
   (rf/dispatch-sync [:initialize])
-  (render))
+  (start))
