@@ -4,6 +4,7 @@
   "private": true,
   "devDependencies": {
     "npm-run-all": "^4.1.5",
+    "peer": "^0.5.3",
     "shadow-cljs": "2.10.15"
   },
   "dependencies": {
@@ -15,7 +16,7 @@
   },
   "scripts": {
     "watch": "shadow-cljs watch frontend",
-    "server": "shadow-cljs server",
+    "server": "peerjs --port 9000 --key peerjs",
     "fmt": "clj -R:fmt fmt.clj",
     "dev": "run-p fmt watch"
   }
