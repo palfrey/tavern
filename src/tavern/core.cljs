@@ -5,10 +5,13 @@
    [reagent.dom :as rdom]
    [re-frame.core :as rf]
    [clojure.string :as str]
+   [goog.string :as gstring]
+   [goog.string.format]
 
    [tavern.routes :as routes]
    [tavern.intervals :as ti]
-   [tavern.events :as events]))
+   [tavern.events :as events]
+   [tavern.video :as video]))
 
 (set! *warn-on-infer* true)
 
@@ -33,7 +36,12 @@
   (rf/reg-sub
    :peers
    (fn [db _]
-     (get db :peers []))))
+     (get db :peers [])))
+
+  (rf/reg-sub
+   :mediastream
+   (fn [db _]
+     (get db :mediastream nil))))
 
 (defn clock []
   [:div.example-clock
@@ -42,11 +50,42 @@
        (str/split " ")
        first)])
 
+(defn getstreams []
+  (let [peerid @(rf/subscribe [:peer-id])
+        stream @(rf/subscribe [:mediastream])]
+    (if (or (nil? peerid) (nil? stream))
+      []
+      (do
+        (js/console.log "stream" stream)
+        ;(js/console.log (.createObjectURL js/URL stream))
+        [[peerid {:stream stream}]]))))
+
+(defn videos []
+  (let [streams (getstreams)
+        total (count streams)
+        size (Math/ceil (if (> total 0) (Math/sqrt total) 0))]
+    (js/console.log "size" size)
+    [:table {:width "100%" :style {:background-color "black" :border 1 :border-style "solid" :border-color "black"}}
+     [:tbody {:width "100%"}
+      (for [x (range size)]
+        ^{:key (gstring/format "row-%d" x)}
+        [:tr {:width "100%"}
+         (for [y (range size)
+               :let [idx (+ y (* x size))
+                     entry (nth streams idx)
+                     id (first entry)
+                     config (second entry)]]
+           ^{:key (gstring/format "stream-%d" idx)}
+           [:td {:style {:border 1 :border-style "solid" :border-color "black"} :width (gstring/format "%f%%" (/ 100 size))}
+            [:div {:style {:color "white"}} "Foo"]
+            [video/video-component (gstring/format "stream-%d" idx) config]])])]]))
+
 (defn home-panel []
   [:div (str "This is the Home Page.")
    [:div @(rf/subscribe [:peer-id])]
    [:div (str @(rf/subscribe [:peers]))]
-   [:div [:a {:href (routes/url-for :about)} "go to About Page"]]])
+   [:div [:a {:href (routes/url-for :about)} "go to About Page"]]
+   [videos]])
 
 (defn about-panel []
   [:div "This is the About Page."
