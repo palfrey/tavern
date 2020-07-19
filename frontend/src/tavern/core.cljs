@@ -1,6 +1,6 @@
 (ns tavern.core
   (:require
-   ["peerjs" :as peerjs]
+   ["webrtc-adapter" :as webrtc-adapter]
    [reagent.core :as reagent]
    [reagent.dom :as rdom]
    [re-frame.core :as rf]
