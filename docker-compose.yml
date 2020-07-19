@@ -25,3 +25,6 @@ services:
     volumes:
      - ./frontend:/work:cached
     restart: always
+    ports:
+      - 9630:9630 # hot-reload
+      - 9000:9000 # nrepl
