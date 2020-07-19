@@ -56,29 +56,30 @@
     (if (or (nil? peerid) (nil? stream))
       []
       (do
-        (js/console.log "stream" stream)
-        ;(js/console.log (.createObjectURL js/URL stream))
-        [[peerid {:stream stream}]]))))
+        (cons [peerid {:stream stream}]
+              (seq @(rf/subscribe [:peers])))))))
 
 (defn videos []
   (let [streams (getstreams)
         total (count streams)
         size (Math/ceil (if (> total 0) (Math/sqrt total) 0))]
     (js/console.log "size" size)
+    (js/console.log "streams" (clj->js streams))
     [:table {:width "100%" :style {:background-color "black" :border 1 :border-style "solid" :border-color "black"}}
      [:tbody {:width "100%"}
       (for [x (range size)]
         ^{:key (gstring/format "row-%d" x)}
         [:tr {:width "100%"}
          (for [y (range size)
-               :let [idx (+ y (* x size))
-                     entry (nth streams idx)
-                     id (first entry)
-                     config (second entry)]]
-           ^{:key (gstring/format "stream-%d" idx)}
-           [:td {:style {:border 1 :border-style "solid" :border-color "black"} :width (gstring/format "%f%%" (/ 100 size))}
-            [:div {:style {:color "white"}} "Foo"]
-            [video/video-component (gstring/format "stream-%d" idx) config]])])]]))
+               :let [idx (+ y (* x size))]
+               :when (< idx total)]
+           (let [entry (nth streams idx)
+                 id (first entry)
+                 config (second entry)]
+             ^{:key (gstring/format "stream-%d" idx)}
+             [:td {:style {:border 1 :border-style "solid" :border-color "black"} :width (gstring/format "%f%%" (/ 100 size))}
+              [:div {:style {:color "white"}} (gstring/format "stream-%d" idx)]
+              [video/video-component (gstring/format "stream-%d" idx) config]]))])]]))
 
 (defn home-panel []
   [:div (str "This is the Home Page.")
@@ -123,10 +124,10 @@
   (rf/clear-subscription-cache!)
   (ti/interval-handler {:action :clean})
   (reg-subs)
-  (events/getMediaStream)
   (render))
 
 (defn ^:export init []
   (js/console.log "init")
   (rf/dispatch-sync [:initialize])
+  (events/getMediaStream)
   (start))
