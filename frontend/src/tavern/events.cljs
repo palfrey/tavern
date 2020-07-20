@@ -16,36 +16,24 @@
 (ti/reg-event-db
  :initialize
  (fn [db [_ _]]
-   (let [id (:peer-id db)
-         peer (js/Peer. id (js-obj :key "peerjs" "host" "localhost" "port" 9000 "debug" 3
-                                   "iceServers" [;{"urls" "stun:stun.l.google.com:19302"}
-                                                 ]))]
+   db))
+  ;  (let [id (:peer-id db)
+  ;        ]
 
-     (.on peer "error"
-          (fn [err]
-            (js/console.log "Peer error" err)))
-
-     (if (nil? id)
-       (.on peer "open"
-            (fn [id]
-              (js/console.log "New peer id is" id)
-              (rf/dispatch [:peer-id id])))
-       (js/console.log "Existing id is" id))
-
-     (.on peer "call"
-          (fn [call]
-            (js/console.log "Got a call" call)
-            (.on call "error"
-                 (fn [err]
-                   (js/console.log "Call error" err)))
-            (.on call "stream"
-                 (fn [remoteStream]
-                   (let [peer-id (.-peer call)]
-                     (js/console.log "Got stream for" peer-id remoteStream)
-                     (rf/dispatch [:status peer-id :called])
-                     (rf/dispatch [:set-stream peer-id remoteStream]))))
-            (.answer call (:mediastream db))))
-     (assoc db :peer peer))))
+  ;    (.on peer "call"
+  ;         (fn [call]
+  ;           (js/console.log "Got a call" call)
+  ;           (.on call "error"
+  ;                (fn [err]
+  ;                  (js/console.log "Call error" err)))
+  ;           (.on call "stream"
+  ;                (fn [remoteStream]
+  ;                  (let [peer-id (.-peer call)]
+  ;                    (js/console.log "Got stream for" peer-id remoteStream)
+  ;                    (rf/dispatch [:status peer-id :called])
+  ;                    (rf/dispatch [:set-stream peer-id remoteStream]))))
+  ;           (.answer call (:mediastream db))))
+  ;    (assoc db :peer peer))))
 
 (rf/reg-event-fx
  ::set-active-panel
