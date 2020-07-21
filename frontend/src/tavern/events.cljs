@@ -1,8 +1,13 @@
 (ns tavern.events
+  (:require-macros [cljs.core.async.macros :refer [go]])
   (:require
    [re-frame.core :as rf]
    [tavern.intervals]
-   [tavern.interceptors :as ti]))
+   [tavern.interceptors :as ti]
+
+   [cljs.core.async :as a :refer [<! >!]]
+   [haslett.client :as ws]
+   [haslett.format :as fmt]))
 
 (defn getMediaStream []
   (.catch
@@ -16,7 +21,8 @@
 (ti/reg-event-db
  :initialize
  (fn [db [_ _]]
-   db))
+   (let [websocket (ws/connect "wss://localhost:8000/ws")]
+     (assoc db :ws websocket))))
   ;  (let [id (:peer-id db)
   ;        ]
 

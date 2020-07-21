@@ -5,8 +5,11 @@ authors = ["Tom Parker-Shemilt <palfrey@tevp.net>"]
 edition = "2018"
 
 [dependencies]
-actix-web = "2.0"
-actix-rt = "1.0"
+actix = "0.9"
+actix-web = "2"
+actix-rt = "1"
+actix-http = "1"
 actix-files = "0.2"
+actix-web-actors = "2"
 anyhow = "1"
 thiserror = "1"
