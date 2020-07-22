@@ -13,3 +13,7 @@ actix-files = "0.2"
 actix-web-actors = "2"
 anyhow = "1"
 thiserror = "1"
+serde = "1"
+serde_json = "1"
+uuid = {version = "0.8", features = ["serde", "v4"] }
+lazy_static = "1.4"
