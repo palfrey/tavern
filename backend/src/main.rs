@@ -205,6 +205,9 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                                     .unwrap(),
                                 );
                             }
+                            Command::Ping => {
+                                ctx.text(serde_json::to_string(&Response::Pong).unwrap());
+                            }
                         }
                     }
                     Err(_error) => {

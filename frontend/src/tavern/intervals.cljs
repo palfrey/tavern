@@ -4,7 +4,8 @@
 
 (defonce interval-handler                ;; notice the use of defonce
   (let [live-intervals (atom {})]        ;; storage for live intervals
-    (fn handler [{:keys [action id frequency event]}]     ;; the effect handler
+    (fn handler [{:keys [action id frequency event] :as effect}]     ;; the effect handler
+      (js/console.log "effect" (str effect))
       (condp = action
         :clean   (doall                ;; <--- new. clean up all existing
                   (map #(handler {:action :end :id %1}) (keys @live-intervals)))

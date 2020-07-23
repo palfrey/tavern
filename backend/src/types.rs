@@ -43,6 +43,7 @@ pub enum Command {
     JoinTable { table_id: Uuid },
     LeaveTable,
     Send { user_id: Uuid, content: String },
+    Ping,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -54,4 +55,5 @@ pub enum Response {
     Tables { list: Vec<Table> },
     Person { data: Person },
     Data { author: Uuid, content: String },
+    Pong,
 }

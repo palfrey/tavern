@@ -16,7 +16,7 @@
 
 (ti/reg-event-db
  :initialize
- (fn [db [_ _]]
+ (fn [db _]
    (let [db (if (contains? db :peer-id) db (assoc db :peer-id (random-uuid)))
          websocket (js/WebSocket. (str "wss://localhost:8000/ws/" (str (:peer-id db))))
          db (assoc db :websocket websocket)]
@@ -33,6 +33,10 @@
       websocket "error"
       (fn [event]
         (js/console.log "Error" event)))
+     (.addEventListener
+      websocket "close"
+      (fn [event]
+        (js/console.log "close" event)))
      db)))
 
 (rf/reg-event-fx
@@ -50,7 +54,7 @@
              {:action :start
               :id :peers
               :frequency (* 10 1000)
-              :event [:peers-timer]}]}
+              :event [:ping]}]}
            {})]
      (merge extra
             {:db (assoc db :active-panel active-panel)}))))
@@ -126,3 +130,9 @@
  :pubs
  (fn [db [_ pubs]]
    (assoc db :pubs pubs)))
+
+(ti/reg-event-db
+ :ping
+ (fn [db _]
+   (commands/ping (:websocket db))
+   db))
