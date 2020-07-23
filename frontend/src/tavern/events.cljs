@@ -1,17 +1,13 @@
 (ns tavern.events
-  (:require-macros [cljs.core.async.macros :refer [go]])
   (:require
    [re-frame.core :as rf]
+   [tavern.commands :as commands]
    [tavern.intervals]
-   [tavern.interceptors :as ti]
-
-   [cljs.core.async :as a :refer [<! >!]]
-   [haslett.client :as ws]
-   [haslett.format :as fmt]))
+   [tavern.interceptors :as ti]))
 
 (defn getMediaStream []
   (.catch
-   (.then (.getUserMedia (-> js/navigator .-mediaDevices) (js-obj "video" true "audio" false))
+   (.then (.getUserMedia (-> js/navigator .-mediaDevices) (js-obj "video" true "audio" false "width" 320))
           (fn [stream]
             (js/console.log "got stream" stream)
             (rf/dispatch [:mediastream stream])))
@@ -21,25 +17,19 @@
 (ti/reg-event-db
  :initialize
  (fn [db [_ _]]
-   (let [websocket (ws/connect "wss://localhost:8000/ws")]
-     (assoc db :ws websocket))))
-  ;  (let [id (:peer-id db)
-  ;        ]
-
-  ;    (.on peer "call"
-  ;         (fn [call]
-  ;           (js/console.log "Got a call" call)
-  ;           (.on call "error"
-  ;                (fn [err]
-  ;                  (js/console.log "Call error" err)))
-  ;           (.on call "stream"
-  ;                (fn [remoteStream]
-  ;                  (let [peer-id (.-peer call)]
-  ;                    (js/console.log "Got stream for" peer-id remoteStream)
-  ;                    (rf/dispatch [:status peer-id :called])
-  ;                    (rf/dispatch [:set-stream peer-id remoteStream]))))
-  ;           (.answer call (:mediastream db))))
-  ;    (assoc db :peer peer))))
+   (let [db (if (contains? db :peer-id) db (assoc db :peer-id (random-uuid)))
+         websocket (js/WebSocket. (str "wss://localhost:8000/ws/" (str (:peer-id db))))
+         db (assoc db :websocket websocket)]
+     (.addEventListener
+      websocket "open"
+      (fn [event]
+        (js/console.log "Socket open")
+        (commands/list-pubs websocket)))
+     (.addEventListener
+      websocket "message"
+      (fn [event]
+        (commands/handle-event (.-data event))))
+     db)))
 
 (rf/reg-event-fx
  ::set-active-panel
@@ -69,11 +59,11 @@
 (rf/reg-event-db
  :peers-timer
  (fn [db [_ _]]
-   (.listAllPeers
-    (:peer db)
-    (fn [peerids]
-      (println "peers" (js->clj peerids))
-      (rf/dispatch [:peers (js->clj peerids)])))
+  ;  (.listAllPeers
+  ;   (:peer db)
+  ;   (fn [peerids]
+  ;     (println "peers" (js->clj peerids))
+  ;     (rf/dispatch [:peers (js->clj peerids)])))
    db))
 
 (ti/reg-event-db

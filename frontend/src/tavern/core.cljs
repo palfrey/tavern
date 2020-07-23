@@ -8,6 +8,7 @@
    [goog.string :as gstring]
    [goog.string.format]
 
+   [tavern.commands :as commands]
    [tavern.routes :as routes]
    [tavern.intervals :as ti]
    [tavern.events :as events]
@@ -37,6 +38,11 @@
    :peers
    (fn [db _]
      (get db :peers [])))
+
+  (rf/reg-sub
+   :websocket
+   (fn [db _]
+     (:websocket db)))
 
   (rf/reg-sub
    :mediastream
@@ -82,7 +88,7 @@
               [video/video-component (gstring/format "stream-%d" idx) config]]))])]]))
 
 (defn home-panel []
-  [:div (str "This is the Home Page.")
+  [:div [:input {:type "button" :value "Update pub list" :onClick #(commands/list-pubs @(rf/subscribe [:websocket]))}]
    [:div @(rf/subscribe [:peer-id])]
    [:div (str @(rf/subscribe [:peers]))]
    [:div [:a {:href (routes/url-for :about)} "go to About Page"]]
@@ -129,5 +135,5 @@
 (defn ^:export init []
   (js/console.log "init")
   (rf/dispatch-sync [:initialize])
-  (events/getMediaStream)
+  ;(events/getMediaStream)
   (start))
