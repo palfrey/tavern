@@ -25,7 +25,7 @@ impl Actor for Client {
     type Context = ws::WebsocketContext<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        ADDRS.write().insert(self.id, ctx.address()).unwrap();
+        ADDRS.write().insert(self.id, ctx.address());
     }
 }
 
