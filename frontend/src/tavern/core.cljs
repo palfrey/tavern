@@ -40,6 +40,11 @@
      (get db :peers [])))
 
   (rf/reg-sub
+   :pubs
+   (fn [db _]
+     (get db :pubs [])))
+
+  (rf/reg-sub
    :websocket
    (fn [db _]
      (:websocket db)))

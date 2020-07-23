@@ -29,6 +29,10 @@
       websocket "message"
       (fn [event]
         (commands/handle-event (.-data event))))
+     (.addEventListener
+      websocket "error"
+      (fn [event]
+        (js/console.log "Error" event)))
      db)))
 
 (rf/reg-event-fx
@@ -117,3 +121,8 @@
  :status
  (fn [db [_ peer kind]]
    (assoc-in db [:peers peer :status] kind)))
+
+(ti/reg-event-db
+ :pubs
+ (fn [db [_ pubs]]
+   (assoc db :pubs pubs)))
