@@ -89,9 +89,7 @@
 
 (defn home-panel []
   [:div [:input {:type "button" :value "Update pub list" :onClick #(commands/list-pubs @(rf/subscribe [:websocket]))}]
-   [:div @(rf/subscribe [:peer-id])]
-   [:div (str @(rf/subscribe [:peers]))]
-   [:div [:a {:href (routes/url-for :about)} "go to About Page"]]
+   [:div (str @(rf/subscribe [:pubs]))]
    [videos]])
 
 (defn about-panel []
@@ -113,9 +111,21 @@
 
 (defn ui []
   [:div
-   [:h1 "Tavern"]
-   [clock]
-   [main-panel]])
+   [:nav {:class "navbar navbar-expand-md navbar-dark bg-dark fixed-top"}
+    [:a {:class "navbar-brand", :href "#"} "Tavern"]
+    [:button {:class "navbar-toggler", :type "button", :data-toggle "collapse", :data-target "#navbarsExampleDefault", :aria-controls "navbarsExampleDefault", :aria-expanded "false", :aria-label "Toggle navigation"}
+     [:span {:class "navbar-toggler-icon"}]]
+    [:div {:class "collapse navbar-collapse", :id "navbarsExampleDefault"}
+     [:ul {:class "navbar-nav mr-auto"}
+      [:li {:class "nav-item active"}
+       [:a {:class "nav-link", :href "#"} "Home "
+        [:span {:class "sr-only"} "(current)"]]]
+      [:li {:class "nav-item"}
+       [:a {:class "nav-link", :href "#"} "Link"]]]
+     [:span {:class "navbar-text"} [clock]]]]
+   [:main {:role "main" :class "container-fluid"}
+    [:h1 "Tavern"]
+    [main-panel]]])
 
 (defn render []
   (rdom/render [ui]
