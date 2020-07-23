@@ -20,4 +20,5 @@
   (let [msg (js->clj (.parse js/JSON data) :keywordize-keys true)]
     (js/console.log "decoded" (str msg))
     (case (:kind msg)
-      "Pubs" (rf/dispatch [:pubs (:list msg)]))))
+      "Pubs" (rf/dispatch [:pubs (:list msg)])
+      "Pong" (do))))
