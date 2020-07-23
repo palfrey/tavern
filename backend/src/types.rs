@@ -1,6 +1,10 @@
-use actix::Addr;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+#[derive(Debug, Clone)]
+pub struct Client {
+    pub id: Uuid,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Person {
@@ -8,8 +12,6 @@ pub struct Person {
     pub name: String,
     pub pub_id: Option<Uuid>,
     pub table_id: Option<Uuid>,
-    #[serde(skip)]
-    pub addr: Option<Addr<Person>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -31,6 +33,7 @@ pub struct Pub {
 #[serde(tag = "kind")]
 pub enum Command {
     ListPubs,
+    SetName { name: String },
     GetPerson { user_id: Uuid },
     CreatePub { name: String },
     LeavePub,

@@ -2,15 +2,15 @@ mod error;
 mod types;
 
 use crate::error::{MyError, Result};
-use crate::types::{Command, Person, Pub, Response, Table};
+use crate::types::{Client, Command, Person, Pub, Response, Table};
 use actix::prelude::AsyncContext;
-use actix::{Actor, Handler, Message, StreamHandler};
+use actix::{Actor, Addr, Handler, Message, StreamHandler};
 use actix_files::NamedFile;
 use actix_web::{web, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 use lazy_static::lazy_static;
+use parking_lot::RwLock;
 use std::result::Result as StdResult;
-use std::sync::RwLock;
 use std::{collections::HashMap, env, io, path::PathBuf};
 use uuid::Uuid;
 
@@ -18,47 +18,55 @@ lazy_static! {
     static ref PEOPLE: RwLock<HashMap<Uuid, Person>> = RwLock::new(HashMap::new());
     static ref PUBS: RwLock<HashMap<Uuid, Pub>> = RwLock::new(HashMap::new());
     static ref TABLES: RwLock<HashMap<Uuid, Table>> = RwLock::new(HashMap::new());
+    static ref ADDRS: RwLock<HashMap<Uuid, Addr<Client>>> = RwLock::new(HashMap::new());
 }
 
-impl Actor for Person {
+impl Actor for Client {
     type Context = ws::WebsocketContext<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        self.addr = Some(ctx.address());
+        ADDRS.write().insert(self.id, ctx.address()).unwrap();
     }
 }
 
-impl Person {
+impl Client {
     fn leave_pub(&mut self) {
-        if let Some(pub_id) = self.pub_id {
+        let mut people = PEOPLE.write();
+        let person = people.get_mut(&self.id).unwrap();
+        if let Some(pub_id) = person.pub_id {
             PUBS.write()
-                .unwrap()
                 .get_mut(&pub_id)
                 .unwrap()
                 .people
                 .retain(|p| p != &self.id);
-            self.pub_id = None;
         }
+        person.pub_id = None;
     }
 
     fn leave_table(&mut self) {
-        if let Some(table_id) = self.table_id {
+        let mut people = PEOPLE.write();
+        let person = people.get_mut(&self.id).unwrap();
+        if let Some(table_id) = person.table_id {
             TABLES
                 .write()
-                .unwrap()
                 .get_mut(&table_id)
                 .unwrap()
                 .people
                 .retain(|p| p != &self.id);
-            self.table_id = None;
         }
+        person.table_id = None;
     }
 
-    fn return_self(&self, ctx: &mut <types::Person as Actor>::Context)
+    fn return_self(&self, ctx: &mut <types::Client as Actor>::Context)
     where
         Self: Actor,
     {
-        ctx.text(serde_json::to_string(&Response::Person { data: self.clone() }).unwrap());
+        ctx.text(
+            serde_json::to_string(&Response::Person {
+                data: PEOPLE.read().get(&self.id).unwrap().clone(),
+            })
+            .unwrap(),
+        );
     }
 }
 
@@ -70,7 +78,7 @@ impl Message for ClientMsg {
     type Result = Result<()>;
 }
 
-impl Handler<ClientMsg> for Person {
+impl Handler<ClientMsg> for Client {
     type Result = Result<()>;
 
     fn handle(&mut self, msg: ClientMsg, ctx: &mut Self::Context) -> Self::Result {
@@ -85,7 +93,7 @@ impl Handler<ClientMsg> for Person {
     }
 }
 
-impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Person {
+impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
     fn handle(&mut self, msg: StdResult<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
         match msg {
             Ok(ws::Message::Ping(msg)) => {
@@ -100,12 +108,7 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Person {
                             Command::ListPubs => {
                                 ctx.text(
                                     serde_json::to_string(&Response::Pubs {
-                                        list: PUBS
-                                            .read()
-                                            .unwrap()
-                                            .values()
-                                            .cloned()
-                                            .collect::<Vec<Pub>>(),
+                                        list: PUBS.read().values().cloned().collect::<Vec<Pub>>(),
                                     })
                                     .unwrap(),
                                 );
@@ -119,8 +122,8 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Person {
                                     name,
                                     people: vec![self.id],
                                 };
-                                PUBS.write().unwrap().insert(pub_id, new_pub.clone());
-                                self.pub_id = Some(pub_id);
+                                PUBS.write().insert(pub_id, new_pub.clone());
+                                PEOPLE.write().get_mut(&self.id).unwrap().pub_id = Some(pub_id);
                                 ctx.text(
                                     serde_json::to_string(&Response::Pub { data: new_pub })
                                         .unwrap(),
@@ -130,13 +133,8 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Person {
                                 // Only allowed to be in one pub
                                 self.leave_table();
                                 self.leave_pub();
-                                PUBS.write()
-                                    .unwrap()
-                                    .get_mut(&pub_id)
-                                    .unwrap()
-                                    .people
-                                    .push(self.id);
-                                self.pub_id = Some(pub_id);
+                                PUBS.write().get_mut(&pub_id).unwrap().people.push(self.id);
+                                PEOPLE.write().get_mut(&self.id).unwrap().pub_id = Some(pub_id);
                                 self.return_self(ctx);
                             }
                             Command::CreateTable { pub_id, name } => {
@@ -148,8 +146,8 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Person {
                                     name,
                                     people: vec![self.id],
                                 };
-                                TABLES.write().unwrap().insert(pub_id, new_table.clone());
-                                self.table_id = Some(table_id);
+                                TABLES.write().insert(pub_id, new_table.clone());
+                                PEOPLE.write().get_mut(&self.id).unwrap().table_id = Some(table_id);
                                 ctx.text(
                                     serde_json::to_string(&Response::Table { data: new_table })
                                         .unwrap(),
@@ -160,12 +158,11 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Person {
                                 self.leave_table();
                                 TABLES
                                     .write()
-                                    .unwrap()
                                     .get_mut(&table_id)
                                     .unwrap()
                                     .people
                                     .push(self.id);
-                                self.table_id = Some(table_id);
+                                PEOPLE.write().get_mut(&self.id).unwrap().table_id = Some(table_id);
                                 self.return_self(ctx);
                             }
                             Command::LeavePub | Command::LeaveTable => {
@@ -180,7 +177,6 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Person {
                                     serde_json::to_string(&Response::Tables {
                                         list: TABLES
                                             .read()
-                                            .unwrap()
                                             .values()
                                             .filter(|t| t.pub_id == pub_id)
                                             .cloned()
@@ -190,18 +186,25 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Person {
                                 );
                             }
                             Command::Send { user_id, content } => {
-                                PEOPLE
+                                ADDRS
                                     .read()
-                                    .unwrap()
                                     .get(&user_id)
-                                    .unwrap()
-                                    .addr
-                                    .as_ref()
                                     .unwrap()
                                     .try_send(ClientMsg { payload: content })
                                     .unwrap();
                             }
-                            other => println!("Unimplemented: {:?}", other),
+                            Command::SetName { name } => {
+                                PEOPLE.write().get_mut(&self.id).unwrap().name = name;
+                                self.return_self(ctx);
+                            }
+                            Command::GetPerson { user_id } => {
+                                ctx.text(
+                                    serde_json::to_string(&Response::Person {
+                                        data: PEOPLE.read().get(&user_id).unwrap().clone(),
+                                    })
+                                    .unwrap(),
+                                );
+                            }
                         }
                     }
                     Err(_error) => {
@@ -221,14 +224,14 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Person {
 async fn websocket(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse> {
     let id_str = req.match_info().query("id");
     let id = Uuid::parse_str(id_str)?;
-    let actor = Person {
+    let person = Person {
         id,
         name: String::from(""),
         pub_id: None,
         table_id: None,
-        addr: None,
     };
-    let resp = ws::start(actor, &req, stream);
+    PEOPLE.write().insert(id, person);
+    let resp = ws::start(Client { id }, &req, stream);
     println!("Resp: {:?}", resp);
     resp.map_err(|e| MyError::Actix {
         content: e.to_string(),
