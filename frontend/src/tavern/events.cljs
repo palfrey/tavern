@@ -15,7 +15,7 @@
      (js/console.log "usermedia error" err))))
 
 (ti/reg-event-db
- :initialize
+ :create-ws
  (fn [db _]
    (let [db (if (contains? db :peer-id) db (assoc db :peer-id (random-uuid)))
          websocket (js/WebSocket. (str "wss://localhost:8000/ws/" (str (:peer-id db))))
@@ -131,8 +131,9 @@
  (fn [db [_ pubs]]
    (assoc db :pubs pubs)))
 
-(ti/reg-event-db
+(rf/reg-event-fx
  :ping
- (fn [db _]
-   (commands/ping (:websocket db))
-   db))
+ (fn [{:keys [db]} _]
+   (if (not (commands/ping (:websocket db)))
+     {:dispatch [:create-ws]}
+     {})))

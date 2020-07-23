@@ -10,7 +10,8 @@
 (defn ping [websocket]
   (if (= (.-readyState websocket) 1)
     (send-command websocket {"kind" "Ping"})
-    (js/console.log "Can't ping websocket" websocket)))
+    (js/console.log "Can't ping websocket" websocket))
+  (= (.-readyState websocket) 1))
 
 (defn list-pubs [websocket]
   (send-command websocket {"kind" "ListPubs"}))

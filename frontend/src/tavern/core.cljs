@@ -149,6 +149,6 @@
 
 (defn ^:export init []
   (js/console.log "init")
-  (rf/dispatch-sync [:initialize])
+  (rf/dispatch-sync [:create-ws])
   ;(events/getMediaStream)
   (start))
