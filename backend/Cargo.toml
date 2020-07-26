@@ -19,7 +19,7 @@ uuid = {version = "0.8", features = ["serde", "v4"] }
 lazy_static = "1.4"
 parking_lot = "0.11"
 r2d2 = "0.8"
-
-# FIXME: git for 2018 macro support. Change once release > 1.4.5 out
-diesel = { git = "https://github.com/diesel-rs/diesel", rev="bab0d242f37630c0c48e81e7dbe8b54a451380f4", features = ["postgres", "extras"] }
-diesel_migrations = { git = "https://github.com/diesel-rs/diesel", rev="bab0d242f37630c0c48e81e7dbe8b54a451380f4", features = ["postgres"] }
+r2d2_postgres = "*"
+postgres = {version = "0.17", features = ["with-uuid-0_8"] }
+schemamama = "0.3"
+schemamama_postgres = "0.3"

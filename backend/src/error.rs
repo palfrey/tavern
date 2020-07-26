@@ -24,9 +24,9 @@ pub enum MyError {
         #[from]
         source: r2d2::Error,
     },
-    Diesel {
+    Postgres {
         #[from]
-        source: diesel::result::Error,
+        source: postgres::Error,
     },
     #[error(transparent)]
     Other(#[from] anyhow::Error), // source and Display delegate to anyhow::Error

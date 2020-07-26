@@ -1,12 +1,10 @@
-use crate::schema::{person, pub_table, public_house};
-use diesel::pg::PgConnection;
-use diesel::r2d2::ConnectionManager;
-use diesel::{AsChangeset, Insertable, Queryable};
+use postgres::NoTls;
+use r2d2_postgres::PostgresConnectionManager;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-pub type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
-pub type DbConnection = r2d2::PooledConnection<ConnectionManager<PgConnection>>;
+pub type Pool = r2d2::Pool<PostgresConnectionManager<NoTls>>;
+pub type DbConnection = r2d2::PooledConnection<PostgresConnectionManager<NoTls>>;
 
 #[derive(Clone)]
 pub struct Client {
@@ -20,31 +18,40 @@ impl std::fmt::Debug for Client {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Queryable, Insertable, AsChangeset)]
-#[table_name = "person"]
-#[changeset_options(treat_none_as_null = "true")]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Pub {
+    pub id: Uuid,
+    pub name: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PubWithPeople {
+    pub id: Uuid,
+    pub name: String,
+    pub persons: Vec<Uuid>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PubTable {
+    pub id: Uuid,
+    pub name: String,
+    pub pub_id: Uuid,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TableWithPeople {
+    pub id: Uuid,
+    pub name: String,
+    pub pub_id: Uuid,
+    pub persons: Vec<Uuid>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Person {
     pub id: Uuid,
     pub name: Option<String>,
     pub pub_id: Option<Uuid>,
     pub table_id: Option<Uuid>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Queryable, Insertable)]
-#[table_name = "pub_table"]
-pub struct PubTable {
-    pub id: Uuid,
-    pub name: String,
-    //pub people: Vec<Uuid>,
-    pub pub_id: Uuid,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Queryable, Insertable)]
-#[table_name = "public_house"]
-pub struct Pub {
-    pub id: Uuid,
-    pub name: String,
-    //pub people: Vec<Uuid>,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -68,9 +75,9 @@ pub enum Command {
 #[serde(tag = "kind")]
 pub enum Response {
     Pub { data: Pub },
-    Pubs { list: Vec<Pub> },
+    Pubs { list: Vec<PubWithPeople> },
     Table { data: PubTable },
-    Tables { list: Vec<PubTable> },
+    Tables { list: Vec<TableWithPeople> },
     Person { data: Person },
     Data { author: Uuid, content: String },
     Pong,

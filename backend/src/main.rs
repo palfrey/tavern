@@ -1,7 +1,7 @@
 mod commands;
 mod db;
 mod error;
-mod schema;
+mod migrations;
 mod types;
 
 use crate::error::{MyError, Result};
@@ -19,8 +19,8 @@ async fn websocket(
 ) -> Result<HttpResponse> {
     let id_str = req.match_info().query("id");
     let id = Uuid::parse_str(id_str)?;
-    let conn = pool.get_ref().get()?;
-    Person::add_person(&conn, id)?;
+    let mut conn = pool.get_ref().get()?;
+    Person::add_person(&mut conn, id)?;
     let resp = ws::start(
         Client {
             id,
@@ -50,6 +50,7 @@ async fn main() -> io::Result<()> {
     use actix_web::{web, App, HttpServer};
 
     let pool = db::make_pool();
+    migrations::run_migrations(&mut pool.get().unwrap());
 
     HttpServer::new(move || {
         App::new()

@@ -23,15 +23,15 @@ impl Actor for Client {
 }
 
 impl Client {
-    fn leave_pub(&mut self, conn: &DbConnection) -> Result<()> {
+    fn leave_pub(&mut self, conn: &mut DbConnection) -> Result<()> {
         Person::leave_pub(conn, self.id)
     }
 
-    fn leave_table(&mut self, conn: &DbConnection) -> Result<()> {
+    fn leave_table(&mut self, conn: &mut DbConnection) -> Result<()> {
         Person::leave_table(conn, self.id)
     }
 
-    fn return_self(&self, ctx: &mut <Client as Actor>::Context, conn: &DbConnection)
+    fn return_self(&self, ctx: &mut <Client as Actor>::Context, conn: &mut DbConnection)
     where
         Self: Actor,
     {
@@ -69,7 +69,7 @@ impl Handler<ClientMsg> for Client {
 
 impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
     fn handle(&mut self, msg: StdResult<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
-        let conn = self.pool.get().unwrap();
+        let mut conn = self.pool.get().unwrap();
         match msg {
             Ok(ws::Message::Ping(msg)) => {
                 println!("msg: {:?}", msg);
@@ -82,22 +82,22 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                             Command::ListPubs => {
                                 ctx.text(
                                     serde_json::to_string(&Response::Pubs {
-                                        list: Pub::get_pubs(&conn).unwrap(),
+                                        list: Pub::get_pubs(&mut conn).unwrap(),
                                     })
                                     .unwrap(),
                                 );
                             }
                             Command::CreatePub { name } => {
-                                self.leave_table(&conn).unwrap();
-                                self.leave_pub(&conn).unwrap();
+                                self.leave_table(&mut conn).unwrap();
+                                self.leave_pub(&mut conn).unwrap();
                                 let pub_id = Uuid::new_v4();
                                 let new_pub = Pub {
                                     id: pub_id,
                                     name,
                                     //people: vec![self.id],
                                 };
-                                new_pub.add_pub(&conn).unwrap();
-                                Person::set_pub(&conn, self.id, pub_id).unwrap();
+                                new_pub.add_pub(&mut conn).unwrap();
+                                Person::set_pub(&mut conn, self.id, pub_id).unwrap();
                                 ctx.text(
                                     serde_json::to_string(&Response::Pub { data: new_pub })
                                         .unwrap(),
@@ -105,21 +105,21 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                             }
                             Command::JoinPub { pub_id } => {
                                 // Only allowed to be in one pub
-                                self.leave_table(&conn).unwrap();
-                                self.leave_pub(&conn).unwrap();
-                                Person::set_pub(&conn, self.id, pub_id).unwrap();
-                                self.return_self(ctx, &conn);
+                                self.leave_table(&mut conn).unwrap();
+                                self.leave_pub(&mut conn).unwrap();
+                                Person::set_pub(&mut conn, self.id, pub_id).unwrap();
+                                self.return_self(ctx, &mut conn);
                             }
                             Command::CreateTable { pub_id, name } => {
-                                self.leave_table(&conn).unwrap();
+                                self.leave_table(&mut conn).unwrap();
                                 let table_id = Uuid::new_v4();
                                 let new_table = PubTable {
                                     id: table_id,
                                     pub_id,
                                     name,
                                 };
-                                new_table.add_table(&conn).unwrap();
-                                Person::set_table(&conn, self.id, table_id).unwrap();
+                                new_table.add_table(&mut conn).unwrap();
+                                Person::set_table(&mut conn, self.id, table_id).unwrap();
                                 ctx.text(
                                     serde_json::to_string(&Response::Table { data: new_table })
                                         .unwrap(),
@@ -127,21 +127,21 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                             }
                             Command::JoinTable { table_id } => {
                                 // Only allowed to be in one pub
-                                self.leave_table(&conn).unwrap();
-                                Person::set_table(&conn, self.id, table_id).unwrap();
-                                self.return_self(ctx, &conn);
+                                self.leave_table(&mut conn).unwrap();
+                                Person::set_table(&mut conn, self.id, table_id).unwrap();
+                                self.return_self(ctx, &mut conn);
                             }
                             Command::LeavePub | Command::LeaveTable => {
-                                self.leave_table(&conn).unwrap();
+                                self.leave_table(&mut conn).unwrap();
                                 if cmd == Command::LeavePub {
-                                    self.leave_pub(&conn).unwrap();
+                                    self.leave_pub(&mut conn).unwrap();
                                 }
-                                self.return_self(ctx, &conn);
+                                self.return_self(ctx, &mut conn);
                             }
                             Command::ListTables { pub_id } => {
                                 ctx.text(
                                     serde_json::to_string(&Response::Tables {
-                                        list: PubTable::get_tables(&conn, pub_id).unwrap(),
+                                        list: PubTable::get_tables(&mut conn, pub_id).unwrap(),
                                     })
                                     .unwrap(),
                                 );
@@ -155,13 +155,13 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                                     .unwrap();
                             }
                             Command::SetName { name } => {
-                                Person::set_name(&conn, self.id, name).unwrap();
-                                self.return_self(ctx, &conn);
+                                Person::set_name(&mut conn, self.id, name).unwrap();
+                                self.return_self(ctx, &mut conn);
                             }
                             Command::GetPerson { user_id } => {
                                 ctx.text(
                                     serde_json::to_string(&Response::Person {
-                                        data: Person::load_from_db(&conn, user_id).unwrap(),
+                                        data: Person::load_from_db(&mut conn, user_id).unwrap(),
                                     })
                                     .unwrap(),
                                 );
