@@ -1,5 +1,6 @@
 use crate::error::Result;
-use crate::types::{Client, Command, Person, Pub, Response, Table};
+use crate::types::DbConnection;
+use crate::types::{Client, Command, Person, Pub, PubTable, Response};
 use actix::prelude::AsyncContext;
 use actix::{Actor, Addr, Handler, Message, StreamHandler};
 use actix_web_actors::ws;
@@ -10,9 +11,6 @@ use std::result::Result as StdResult;
 use uuid::Uuid;
 
 lazy_static! {
-    pub static ref PEOPLE: RwLock<HashMap<Uuid, Person>> = RwLock::new(HashMap::new());
-    static ref PUBS: RwLock<HashMap<Uuid, Pub>> = RwLock::new(HashMap::new());
-    static ref TABLES: RwLock<HashMap<Uuid, Table>> = RwLock::new(HashMap::new());
     static ref ADDRS: RwLock<HashMap<Uuid, Addr<Client>>> = RwLock::new(HashMap::new());
 }
 
@@ -25,40 +23,21 @@ impl Actor for Client {
 }
 
 impl Client {
-    fn leave_pub(&mut self) {
-        let mut people = PEOPLE.write();
-        let person = people.get_mut(&self.id).unwrap();
-        if let Some(pub_id) = person.pub_id {
-            PUBS.write()
-                .get_mut(&pub_id)
-                .unwrap()
-                .people
-                .retain(|p| p != &self.id);
-        }
-        person.pub_id = None;
+    fn leave_pub(&mut self, conn: &DbConnection) -> Result<()> {
+        Person::leave_pub(conn, self.id)
     }
 
-    fn leave_table(&mut self) {
-        let mut people = PEOPLE.write();
-        let person = people.get_mut(&self.id).unwrap();
-        if let Some(table_id) = person.table_id {
-            TABLES
-                .write()
-                .get_mut(&table_id)
-                .unwrap()
-                .people
-                .retain(|p| p != &self.id);
-        }
-        person.table_id = None;
+    fn leave_table(&mut self, conn: &DbConnection) -> Result<()> {
+        Person::leave_table(conn, self.id)
     }
 
-    fn return_self(&self, ctx: &mut <Client as Actor>::Context)
+    fn return_self(&self, ctx: &mut <Client as Actor>::Context, conn: &DbConnection)
     where
         Self: Actor,
     {
         ctx.text(
             serde_json::to_string(&Response::Person {
-                data: PEOPLE.read().get(&self.id).unwrap().clone(),
+                data: Person::load_from_db(conn, self.id).unwrap(),
             })
             .unwrap(),
         );
@@ -90,6 +69,7 @@ impl Handler<ClientMsg> for Client {
 
 impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
     fn handle(&mut self, msg: StdResult<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
+        let conn = self.pool.get().unwrap();
         match msg {
             Ok(ws::Message::Ping(msg)) => {
                 println!("msg: {:?}", msg);
@@ -102,22 +82,22 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                             Command::ListPubs => {
                                 ctx.text(
                                     serde_json::to_string(&Response::Pubs {
-                                        list: PUBS.read().values().cloned().collect::<Vec<Pub>>(),
+                                        list: Pub::get_pubs(&conn).unwrap(),
                                     })
                                     .unwrap(),
                                 );
                             }
                             Command::CreatePub { name } => {
-                                self.leave_table();
-                                self.leave_pub();
+                                self.leave_table(&conn).unwrap();
+                                self.leave_pub(&conn).unwrap();
                                 let pub_id = Uuid::new_v4();
                                 let new_pub = Pub {
                                     id: pub_id,
                                     name,
-                                    people: vec![self.id],
+                                    //people: vec![self.id],
                                 };
-                                PUBS.write().insert(pub_id, new_pub.clone());
-                                PEOPLE.write().get_mut(&self.id).unwrap().pub_id = Some(pub_id);
+                                new_pub.add_pub(&conn).unwrap();
+                                Person::set_pub(&conn, self.id, pub_id).unwrap();
                                 ctx.text(
                                     serde_json::to_string(&Response::Pub { data: new_pub })
                                         .unwrap(),
@@ -125,23 +105,21 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                             }
                             Command::JoinPub { pub_id } => {
                                 // Only allowed to be in one pub
-                                self.leave_table();
-                                self.leave_pub();
-                                PUBS.write().get_mut(&pub_id).unwrap().people.push(self.id);
-                                PEOPLE.write().get_mut(&self.id).unwrap().pub_id = Some(pub_id);
-                                self.return_self(ctx);
+                                self.leave_table(&conn).unwrap();
+                                self.leave_pub(&conn).unwrap();
+                                Person::set_pub(&conn, self.id, pub_id).unwrap();
+                                self.return_self(ctx, &conn);
                             }
                             Command::CreateTable { pub_id, name } => {
-                                self.leave_table();
+                                self.leave_table(&conn).unwrap();
                                 let table_id = Uuid::new_v4();
-                                let new_table = Table {
+                                let new_table = PubTable {
                                     id: table_id,
                                     pub_id,
                                     name,
-                                    people: vec![self.id],
                                 };
-                                TABLES.write().insert(pub_id, new_table.clone());
-                                PEOPLE.write().get_mut(&self.id).unwrap().table_id = Some(table_id);
+                                new_table.add_table(&conn).unwrap();
+                                Person::set_table(&conn, self.id, table_id).unwrap();
                                 ctx.text(
                                     serde_json::to_string(&Response::Table { data: new_table })
                                         .unwrap(),
@@ -149,32 +127,21 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                             }
                             Command::JoinTable { table_id } => {
                                 // Only allowed to be in one pub
-                                self.leave_table();
-                                TABLES
-                                    .write()
-                                    .get_mut(&table_id)
-                                    .unwrap()
-                                    .people
-                                    .push(self.id);
-                                PEOPLE.write().get_mut(&self.id).unwrap().table_id = Some(table_id);
-                                self.return_self(ctx);
+                                self.leave_table(&conn).unwrap();
+                                Person::set_table(&conn, self.id, table_id).unwrap();
+                                self.return_self(ctx, &conn);
                             }
                             Command::LeavePub | Command::LeaveTable => {
-                                self.leave_table();
+                                self.leave_table(&conn).unwrap();
                                 if cmd == Command::LeavePub {
-                                    self.leave_pub();
+                                    self.leave_pub(&conn).unwrap();
                                 }
-                                self.return_self(ctx);
+                                self.return_self(ctx, &conn);
                             }
                             Command::ListTables { pub_id } => {
                                 ctx.text(
                                     serde_json::to_string(&Response::Tables {
-                                        list: TABLES
-                                            .read()
-                                            .values()
-                                            .filter(|t| t.pub_id == pub_id)
-                                            .cloned()
-                                            .collect::<Vec<Table>>(),
+                                        list: PubTable::get_tables(&conn, pub_id).unwrap(),
                                     })
                                     .unwrap(),
                                 );
@@ -188,13 +155,13 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                                     .unwrap();
                             }
                             Command::SetName { name } => {
-                                PEOPLE.write().get_mut(&self.id).unwrap().name = name;
-                                self.return_self(ctx);
+                                Person::set_name(&conn, self.id, name).unwrap();
+                                self.return_self(ctx, &conn);
                             }
                             Command::GetPerson { user_id } => {
                                 ctx.text(
                                     serde_json::to_string(&Response::Person {
-                                        data: PEOPLE.read().get(&user_id).unwrap().clone(),
+                                        data: Person::load_from_db(&conn, user_id).unwrap(),
                                     })
                                     .unwrap(),
                                 );

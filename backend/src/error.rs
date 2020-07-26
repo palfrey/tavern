@@ -20,6 +20,14 @@ pub enum MyError {
     Actix {
         content: String,
     },
+    R2D2 {
+        #[from]
+        source: r2d2::Error,
+    },
+    Diesel {
+        #[from]
+        source: diesel::result::Error,
+    },
     #[error(transparent)]
     Other(#[from] anyhow::Error), // source and Display delegate to anyhow::Error
 }
