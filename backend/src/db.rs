@@ -92,7 +92,7 @@ impl Pub {
 
 impl PubTable {
     pub fn get_tables(conn: &mut DbConnection, pub_id: Uuid) -> Result<Vec<TableWithPeople>> {
-        Ok(conn.query("SELECT *, ARRAY_AGG(person.id) AS persons FROM \"table\" WHERE \"table\".pub_id = $1 LEFT JOIN person ON person.table_id = \"table\".id GROUP BY \"table\".id", &[&pub_id])?
+        Ok(conn.query("SELECT *, ARRAY_AGG(person.id) AS persons FROM pub_table WHERE pub_table.pub_id = $1 LEFT JOIN person ON person.table_id = pub_table.id GROUP BY pub_table.id", &[&pub_id])?
         .iter()
         .map(|row| TableWithPeople {
             id: row.get("id"),
@@ -104,7 +104,7 @@ impl PubTable {
 
     pub fn add_table(&self, conn: &mut DbConnection) -> Result<()> {
         map_empty(conn.execute(
-            "INSERT INTO \"table\" (id, name) VALUES ($1, $2)",
+            "INSERT INTO pub_table (id, name) VALUES ($1, $2)",
             &[&self.id, &self.name],
         ))
     }

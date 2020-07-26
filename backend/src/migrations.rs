@@ -20,13 +20,13 @@ impl PostgresMigration for CreateAll {
                 transaction
                     .execute(
                         r#"
-        CREATE TABLE "table" (
+        CREATE TABLE "pub_table" (
             id uuid PRIMARY KEY,
             name VARCHAR NOT NULL,
             pub_id uuid NOT NULL,
             CONSTRAINT fk_table_pub
               FOREIGN KEY(pub_id) 
-              REFERENCES pub(id)
+              REFERENCES public_house(id)
         );"#,
                         &[],
                     )
@@ -40,10 +40,10 @@ impl PostgresMigration for CreateAll {
             table_id uuid NULL,
             CONSTRAINT fk_person_pub
               FOREIGN KEY(pub_id) 
-              REFERENCES pub(id),
+              REFERENCES public_house(id),
             CONSTRAINT fk_person_table
               FOREIGN KEY(table_id)
-              REFERENCES pub(id)
+              REFERENCES pub_table(id)
         );"#,
                             &[],
                         )
