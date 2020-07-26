@@ -49,13 +49,18 @@ fn main() -> io::Result<()> {
     let pool = db::make_pool();
     migrations::run_migrations(&mut pool.get().unwrap());
 
-    HttpServer::new(move || {
-        App::new()
-            .data(pool.clone())
-            .route("/ws/{id}", web::get().to(websocket))
-            .route("/{filename:.*}", web::get().to(index))
-    })
-    .bind("0.0.0.0:5000")?
-    .run();
+    actix::run(async {
+        HttpServer::new(move || {
+            App::new()
+                .data(pool.clone())
+                .route("/ws/{id}", web::get().to(websocket))
+                .route("/{filename:.*}", web::get().to(index))
+        })
+        .bind("0.0.0.0:5000")
+        .unwrap()
+        .run()
+        .await
+        .unwrap()
+    })?;
     Ok(())
 }
