@@ -1,10 +1,9 @@
-use postgres::NoTls;
 use r2d2_postgres::PostgresConnectionManager;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-pub type Pool = r2d2::Pool<PostgresConnectionManager<NoTls>>;
-pub type DbConnection = r2d2::PooledConnection<PostgresConnectionManager<NoTls>>;
+pub type Pool = r2d2::Pool<PostgresConnectionManager>;
+pub type DbConnection = r2d2::PooledConnection<PostgresConnectionManager>;
 
 #[derive(Clone)]
 pub struct Client {

@@ -12,6 +12,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:mysecretpassword@postgres:5432/postgres
       - FRONTEND=/frontend/public/
+      - RUST_BACKTRACE=1
     volumes:
      - ./backend:/work:cached
      - ./frontend:/frontend:cached

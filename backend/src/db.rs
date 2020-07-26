@@ -1,14 +1,13 @@
 use crate::error::{MyError, Result};
 use crate::types::{DbConnection, Person, Pool, Pub, PubTable, PubWithPeople, TableWithPeople};
-use postgres::NoTls;
-use r2d2_postgres::PostgresConnectionManager;
+use r2d2_postgres::{PostgresConnectionManager, TlsMode};
 use std::env;
 use std::result::Result as StdResult;
 use uuid::Uuid;
 
 pub fn make_pool() -> Pool {
     let db_url = env::var("DATABASE_URL").expect("Database url not set");
-    let manager = PostgresConnectionManager::new(db_url.parse().unwrap(), NoTls);
+    let manager = PostgresConnectionManager::new(db_url, TlsMode::None).unwrap();
     let pool = Pool::new(manager).expect("Failed to create db pool");
     pool
 }
@@ -36,7 +35,8 @@ impl Person {
     }
 
     pub fn load_from_db(conn: &mut DbConnection, person_id: Uuid) -> Result<Person> {
-        let row = conn.query_one("SELECT * FROM person WHERE person.id = $1", &[&person_id])?;
+        let rows = conn.query("SELECT * FROM person WHERE person.id = $1", &[&person_id])?;
+        let row = rows.get(0);
         Ok(Person {
             id: row.get("id"),
             name: row.get("name"),
