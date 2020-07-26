@@ -13,8 +13,13 @@ impl PostgresMigration for CreateAll {
         CREATE TABLE "public_house" (
             id uuid PRIMARY KEY,
             name VARCHAR NOT NULL
-        );
-        
+        );"#,
+                &[],
+            )
+            .and_then(|_| {
+                transaction
+                    .execute(
+                        r#"
         CREATE TABLE "table" (
             id uuid PRIMARY KEY,
             name VARCHAR NOT NULL,
@@ -22,8 +27,12 @@ impl PostgresMigration for CreateAll {
             CONSTRAINT fk_table_pub
               FOREIGN KEY(pub_id) 
               REFERENCES pub(id)
-        );
-        
+        );"#,
+                        &[],
+                    )
+                    .and_then(|_| {
+                        transaction.execute(
+                            r#"
         CREATE TABLE "person" (
             id uuid PRIMARY KEY,
             name VARCHAR NULL,
@@ -36,8 +45,10 @@ impl PostgresMigration for CreateAll {
               FOREIGN KEY(table_id)
               REFERENCES pub(id)
         );"#,
-                &[],
-            )
+                            &[],
+                        )
+                    })
+            })
             .map(|_| ())
     }
 

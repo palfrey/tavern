@@ -7,7 +7,7 @@ mod types;
 use crate::error::{MyError, Result};
 use crate::types::{Client, Person};
 use actix_files::NamedFile;
-use actix_web::{web, App, HttpServer, HttpRequest, HttpResponse};
+use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer};
 use actix_web_actors::ws;
 use std::{env, io, path::PathBuf};
 use uuid::Uuid;
