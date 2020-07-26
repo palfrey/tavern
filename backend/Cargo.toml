@@ -7,7 +7,6 @@ edition = "2018"
 [dependencies]
 actix = "0.9"
 actix-web = "2"
-actix-rt = "1"
 actix-http = "1"
 actix-files = "0.2"
 actix-web-actors = "2"

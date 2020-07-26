@@ -7,7 +7,7 @@ mod types;
 use crate::error::{MyError, Result};
 use crate::types::{Client, Person};
 use actix_files::NamedFile;
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{web, App, HttpServer, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 use std::{env, io, path::PathBuf};
 use uuid::Uuid;
@@ -45,10 +45,7 @@ async fn index(req: HttpRequest) -> Result<NamedFile> {
     Ok(NamedFile::open(path)?)
 }
 
-#[actix_rt::main]
-async fn main() -> io::Result<()> {
-    use actix_web::{web, App, HttpServer};
-
+fn main() -> io::Result<()> {
     let pool = db::make_pool();
     migrations::run_migrations(&mut pool.get().unwrap());
 
@@ -59,6 +56,6 @@ async fn main() -> io::Result<()> {
             .route("/{filename:.*}", web::get().to(index))
     })
     .bind("0.0.0.0:5000")?
-    .run()
-    .await
+    .run();
+    Ok(())
 }
