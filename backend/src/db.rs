@@ -91,6 +91,15 @@ impl Pub {
             &[&self.id, &self.name],
         ))
     }
+
+    pub fn delete_pub(conn: &mut DbConnection, pub_id: Uuid) -> Result<()> {
+        let patrons = conn.query("SELECT id FROM person WHERE person.pub_id = $1", &[&pub_id])?;
+        if patrons.is_empty() {
+            map_empty(conn.execute("DELETE FROM public_house WHERE id = $1", &[&pub_id]))
+        } else {
+            Ok(())
+        }
+    }
 }
 
 impl PubTable {

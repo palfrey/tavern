@@ -132,6 +132,12 @@
    (assoc db :pubs pubs)))
 
 (ti/reg-event-db
+ :person
+ (fn [db [_ person]]
+   (commands/list-pubs (:websocket db))
+   (assoc-in db [:persons (:id person)] person)))
+
+(ti/reg-event-db
  :pub
  (fn [db [_ pub]]
    (update db :pubs conj pub)))

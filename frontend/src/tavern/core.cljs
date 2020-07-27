@@ -99,7 +99,14 @@
        [:div "Pubs"]
        [:ul
         (for [pub @(rf/subscribe [:pubs])]
-          ^{:key (:id pub)} [:li (:name pub)])]
+          ^{:key (:id pub)}
+          [:li (:name pub)
+           [:span " "]
+           [:button {:class "btn btn-primary" :onClick #(commands/join-pub @(rf/subscribe [:websocket]) (:id pub))} "Join"]
+           [:span " "]
+           (if (= (:persons pub) [])
+             [:button {:class "btn btn-danger"
+                       :onClick #(commands/delete-pub @(rf/subscribe [:websocket]) (:id pub))} "Delete"] [:div])])]
        [:form
         [:div {:class "form-group"}
          [:label {:for "pubName"} "New pub"]

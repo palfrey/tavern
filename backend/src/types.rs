@@ -62,6 +62,7 @@ pub enum Command {
     CreatePub { name: String },
     LeavePub,
     JoinPub { pub_id: Uuid },
+    DeletePub { pub_id: Uuid },
     CreateTable { pub_id: Uuid, name: String },
     ListTables { pub_id: Uuid },
     JoinTable { table_id: Uuid },

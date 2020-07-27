@@ -103,6 +103,15 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                                         .unwrap(),
                                 );
                             }
+                            Command::DeletePub { pub_id } => {
+                                Pub::delete_pub(&mut conn, pub_id).unwrap();
+                                ctx.text(
+                                    serde_json::to_string(&Response::Pubs {
+                                        list: Pub::get_pubs(&mut conn).unwrap(),
+                                    })
+                                    .unwrap(),
+                                );
+                            }
                             Command::JoinPub { pub_id } => {
                                 // Only allowed to be in one pub
                                 self.leave_table(&mut conn).unwrap();

@@ -19,10 +19,17 @@
 (defn create-pub [websocket name]
   (send-command websocket {"kind" "CreatePub" "name" name}))
 
+(defn delete-pub [websocket pub_id]
+  (send-command websocket {"kind" "DeletePub" "pub_id" pub_id}))
+
+(defn join-pub [websocket pub_id]
+  (send-command websocket {"kind" "JoinPub" "pub_id" pub_id}))
+
 (defn handle-event [data]
   (let [msg (js->clj (.parse js/JSON data) :keywordize-keys true)]
     (js/console.log "decoded" (str msg))
     (case (:kind msg)
       "Pubs" (rf/dispatch [:pubs (:list msg)])
       "Pong" (do)
-      "Pub" (rf/dispatch [:pub (:data msg)]))))
+      "Pub" (rf/dispatch [:pub (:data msg)])
+      "Person" (rf/dispatch [:person (:data msg)]))))
