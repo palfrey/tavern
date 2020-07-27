@@ -46,7 +46,10 @@ impl Person {
     }
 
     pub fn add_person(conn: &mut DbConnection, person_id: Uuid) -> Result<()> {
-        map_empty(conn.execute("INSERT INTO person (id) VALUES ($1)", &[&person_id]))
+        map_empty(conn.execute(
+            "INSERT INTO person (id) VALUES ($1) ON CONFLICT DO NOTHING",
+            &[&person_id],
+        ))
     }
 
     pub fn set_name(conn: &mut DbConnection, person_id: Uuid, name: String) -> Result<()> {
@@ -73,7 +76,7 @@ impl Person {
 
 impl Pub {
     pub fn get_pubs(conn: &mut DbConnection) -> Result<Vec<PubWithPeople>> {
-        Ok(conn.query("SELECT *, ARRAY_AGG(person.id) AS persons FROM public_house LEFT JOIN person ON person.pub_id = public_house.id GROUP BY public_house.id", &[])?
+        Ok(conn.query("SELECT public_house.*, ARRAY_REMOVE(ARRAY_AGG(person.id), NULL) AS persons FROM public_house LEFT JOIN person ON person.pub_id = public_house.id GROUP BY public_house.id", &[])?
         .iter()
         .map(|row| PubWithPeople {
             id: row.get("id"),
@@ -92,7 +95,7 @@ impl Pub {
 
 impl PubTable {
     pub fn get_tables(conn: &mut DbConnection, pub_id: Uuid) -> Result<Vec<TableWithPeople>> {
-        Ok(conn.query("SELECT *, ARRAY_AGG(person.id) AS persons FROM pub_table WHERE pub_table.pub_id = $1 LEFT JOIN person ON person.table_id = pub_table.id GROUP BY pub_table.id", &[&pub_id])?
+        Ok(conn.query("SELECT *, ARRAY_REMOVE(ARRAY_AGG(person.id), NULL) AS persons FROM pub_table WHERE pub_table.pub_id = $1 LEFT JOIN person ON person.table_id = pub_table.id GROUP BY pub_table.id", &[&pub_id])?
         .iter()
         .map(|row| TableWithPeople {
             id: row.get("id"),

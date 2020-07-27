@@ -93,9 +93,25 @@
               [video/video-component (gstring/format "stream-%d" idx) config]]))])]]))
 
 (defn home-panel []
-  [:div [:input {:type "button" :value "Update pub list" :onClick #(commands/list-pubs @(rf/subscribe [:websocket]))}]
-   [:div (str @(rf/subscribe [:pubs]))]
-   [videos]])
+  (let [pubName (reagent/atom "")]
+    (fn []
+      [:div [:input {:type "button" :value "Update pub list" :onClick #(commands/list-pubs @(rf/subscribe [:websocket]))}]
+       [:div "Pubs"]
+       [:ul
+        (for [pub @(rf/subscribe [:pubs])]
+          ^{:key (:id pub)} [:li (:name pub)])]
+       [:form
+        [:div {:class "form-group"}
+         [:label {:for "pubName"} "New pub"]
+         [:input {:type "text"
+                  :class "form-control"
+                  :id "pubName"
+                  :placeholder "Enter pub name"
+                  :value @pubName
+                  :on-change (fn [evt]
+                               (reset! pubName (-> evt .-target .-value)))}]]
+        [:button {:type "button" :class "btn btn-primary" :onClick #(commands/create-pub @(rf/subscribe [:websocket]) @pubName)} "Create pub"]]
+       [videos]])))
 
 (defn about-panel []
   [:div "This is the About Page."

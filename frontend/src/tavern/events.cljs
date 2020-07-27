@@ -131,6 +131,11 @@
  (fn [db [_ pubs]]
    (assoc db :pubs pubs)))
 
+(ti/reg-event-db
+ :pub
+ (fn [db [_ pub]]
+   (update db :pubs conj pub)))
+
 (rf/reg-event-fx
  :ping
  (fn [{:keys [db]} _]

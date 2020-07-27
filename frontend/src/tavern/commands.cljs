@@ -16,9 +16,13 @@
 (defn list-pubs [websocket]
   (send-command websocket {"kind" "ListPubs"}))
 
+(defn create-pub [websocket name]
+  (send-command websocket {"kind" "CreatePub" "name" name}))
+
 (defn handle-event [data]
   (let [msg (js->clj (.parse js/JSON data) :keywordize-keys true)]
     (js/console.log "decoded" (str msg))
     (case (:kind msg)
       "Pubs" (rf/dispatch [:pubs (:list msg)])
-      "Pong" (do))))
+      "Pong" (do)
+      "Pub" (rf/dispatch [:pub (:data msg)]))))
