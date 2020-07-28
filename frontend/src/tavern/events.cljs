@@ -134,6 +134,11 @@
  (fn [db [_ pubs]]
    (assoc db :pubs pubs)))
 
+(ti/reg-event-db
+ :tables
+ (fn [db [_ tables]]
+   (assoc db :tables tables)))
+
 (defn determine-active-panel [db]
   (if-let [peer-id (-> db :peer-id)]
     (do

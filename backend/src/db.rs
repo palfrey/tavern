@@ -104,7 +104,7 @@ impl Pub {
 
 impl PubTable {
     pub fn get_tables(conn: &mut DbConnection, pub_id: Uuid) -> Result<Vec<TableWithPeople>> {
-        Ok(conn.query("SELECT *, ARRAY_REMOVE(ARRAY_AGG(person.id), NULL) AS persons FROM pub_table WHERE pub_table.pub_id = $1 LEFT JOIN person ON person.table_id = pub_table.id GROUP BY pub_table.id", &[&pub_id])?
+        Ok(conn.query("SELECT pub_table.*, ARRAY_REMOVE(ARRAY_AGG(person.id), NULL) AS persons FROM pub_table LEFT JOIN person ON person.table_id = pub_table.id WHERE pub_table.pub_id = $1 GROUP BY pub_table.id", &[&pub_id])?
         .iter()
         .map(|row| TableWithPeople {
             id: row.get("id"),

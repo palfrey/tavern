@@ -42,7 +42,12 @@
   (rf/reg-sub
    :pubs
    (fn [db _]
-     (get db :pubs [])))
+     (get db :pubs {})))
+
+  (rf/reg-sub
+   :tables
+   (fn [db _]
+     (get db :tables {})))
 
   (rf/reg-sub
    :me
@@ -113,7 +118,9 @@
 (defn home-panel []
   (let [pubName (reagent/atom "")]
     (fn []
-      [:div [:input {:type "button" :value "Update pub list" :onClick #(commands/list-pubs @(rf/subscribe [:websocket]))}]
+      [:div
+       [:h1 "Tavern"]
+       [:input {:type "button" :value "Update pub list" :onClick #(commands/list-pubs @(rf/subscribe [:websocket]))}]
        [:div "Pubs"]
        [:ul
         (for [pub (vals @(rf/subscribe [:pubs]))]
@@ -143,9 +150,19 @@
 
 (defn pub-panel []
   (let [current_pub @(rf/subscribe [:current-pub])]
-    [:div [:span (str "Pub " (:name current_pub))]
+    [:div [:h1 (str "Pub " (:name current_pub))]
+     [:br]
      [:button {:class "btn btn-danger"
-               :onClick #(commands/leave-pub @(rf/subscribe [:websocket]))} "Leave pub"]]))
+               :onClick #(commands/leave-pub @(rf/subscribe [:websocket]))} "Leave pub"]
+     [:input {:type "button" :value "Update table list" :onClick #(commands/list-tables @(rf/subscribe [:websocket]) (:id current_pub))}]
+     [:div "Tables"]
+     [:ul
+      (for [table (vals @(rf/subscribe [:tables]))]
+        ^{:key (:id table)}
+        [:li (:name table)
+         [:span " "]
+         [:button {:class "btn btn-primary" :onClick #(commands/join-table @(rf/subscribe [:websocket]) (:id table))} "Join"]
+         [:span " "]])]]))
 
 (defn- panels [panel-name]
   (case panel-name
@@ -176,7 +193,6 @@
        [:a {:class "nav-link", :href "#"} "Link"]]]
      [:span {:class "navbar-text"} [clock]]]]
    [:main {:role "main" :class "container-fluid"}
-    [:h1 "Tavern"]
     [main-panel]]])
 
 (defn render []
