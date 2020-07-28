@@ -9,7 +9,6 @@
    [goog.string.format]
 
    [tavern.commands :as commands]
-   [tavern.routes :as routes]
    [tavern.intervals :as ti]
    [tavern.events :as events]
    [tavern.video :as video]))
@@ -27,6 +26,7 @@
   (rf/reg-sub
    :active-panel
    (fn [db _]
+
      (:active-panel db)))
 
   (rf/reg-sub
@@ -35,14 +35,32 @@
      (get db :peer-id nil)))
 
   (rf/reg-sub
-   :peers
+   :persons
    (fn [db _]
-     (get db :peers [])))
+     (get db :persons [])))
 
   (rf/reg-sub
    :pubs
    (fn [db _]
      (get db :pubs [])))
+
+  (rf/reg-sub
+   :me
+   (fn [_]
+     [(rf/subscribe [:peer-id]) (rf/subscribe [:persons])])
+
+   (fn [[peer-id persons] _]
+     (get persons peer-id)))
+
+  (rf/reg-sub
+   :current-pub
+   (fn [_]
+     [(rf/subscribe [:me]) (rf/subscribe [:pubs])])
+
+   (fn [[me pubs] _]
+     (if-let [pub_id (:pub_id me)]
+       (get pubs pub_id)
+       {})))
 
   (rf/reg-sub
    :websocket
@@ -98,7 +116,7 @@
       [:div [:input {:type "button" :value "Update pub list" :onClick #(commands/list-pubs @(rf/subscribe [:websocket]))}]
        [:div "Pubs"]
        [:ul
-        (for [pub @(rf/subscribe [:pubs])]
+        (for [pub (vals @(rf/subscribe [:pubs]))]
           ^{:key (:id pub)}
           [:li (:name pub)
            [:span " "]
@@ -121,14 +139,20 @@
        [videos]])))
 
 (defn about-panel []
-  [:div "This is the About Page."
-   [:div [:a {:href (routes/url-for :home)} "go to Home Page"]]])
+  [:div "This is the About Page."])
+
+(defn pub-panel []
+  (let [current_pub @(rf/subscribe [:current-pub])]
+    [:div [:span (str "Pub " (:name current_pub))]
+     [:button {:class "btn btn-danger"
+               :onClick #(commands/leave-pub @(rf/subscribe [:websocket]))} "Leave pub"]]))
 
 (defn- panels [panel-name]
   (case panel-name
     :home-panel [home-panel]
     :about-panel [about-panel]
-    [:div]))
+    :pub-panel [pub-panel]
+    [:div (str "Missing panel " panel-name)]))
 
 (defn show-panel [panel-name]
   [panels panel-name])
@@ -164,10 +188,10 @@
 
 (defn ^:dev/after-load start []
   (js/console.log "start")
-  (routes/app-routes)
   (rf/clear-subscription-cache!)
   (ti/interval-handler {:action :clean})
   (reg-subs)
+  (rf/dispatch [:determine-active-panel])
   (render))
 
 (defn ^:export init []

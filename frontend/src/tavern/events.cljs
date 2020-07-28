@@ -17,13 +17,14 @@
 (ti/reg-event-db
  :create-ws
  (fn [db _]
-   (let [db (if (contains? db :peer-id) db (assoc db :peer-id (random-uuid)))
+   (let [db (if (contains? db :peer-id) db (assoc db :peer-id (str (random-uuid))))
          websocket (js/WebSocket. (str "wss://localhost:8000/ws/" (str (:peer-id db))))
          db (assoc db :websocket websocket)]
      (.addEventListener
       websocket "open"
       (fn [event]
         (js/console.log "Socket open")
+        (commands/get-person websocket (:peer-id db))
         (commands/list-pubs websocket)))
      (.addEventListener
       websocket "message"
@@ -40,21 +41,23 @@
      db)))
 
 (rf/reg-event-fx
- ::set-active-panel
+ :set-active-panel
  (fn [{:keys [db]} [_ active-panel]]
    (js/console.log "Navigate to panel" (str active-panel))
    (let [extra
          (case active-panel
            :home-panel
-           {:interval-n
-            [{:action :start
-              :id :now
-              :frequency 1000
-              :event [:timer]}
-             {:action :start
-              :id :peers
-              :frequency (* 10 1000)
-              :event [:ping]}]}
+           (do
+             (commands/list-pubs (:websocket db))
+             {:interval-n
+              [{:action :start
+                :id :now
+                :frequency 1000
+                :event [:timer]}
+               {:action :start
+                :id :peers
+                :frequency (* 10 1000)
+                :event [:ping]}]})
            {})]
      (merge extra
             {:db (assoc db :active-panel active-panel)}))))
@@ -131,16 +134,42 @@
  (fn [db [_ pubs]]
    (assoc db :pubs pubs)))
 
+(defn determine-active-panel [db]
+  (if-let [peer-id (-> db :peer-id)]
+    (do
+      (js/console.log "peer-id" peer-id)
+      (if-let [me (get (get db :persons {}) peer-id)]
+        (do
+          (js/console.log "me" (clj->js me))
+          (if-let [pub (:pub_id me)]
+            :pub-panel
+            :home-panel))
+        :home-panel))
+    :home-panel))
+
+(defn set-active-panel [db]
+  (let [new-panel (determine-active-panel db)]
+    (if (not= new-panel (:active-panel db))
+      (rf/dispatch [:set-active-panel new-panel]))))
+
+(ti/reg-event-db
+ :determine-active-panel
+ (fn [db _]
+   (set-active-panel db)
+   db))
+
 (ti/reg-event-db
  :person
  (fn [db [_ person]]
    (commands/list-pubs (:websocket db))
-   (assoc-in db [:persons (:id person)] person)))
+   (let [new-db (assoc-in db [:persons (:id person)] person)]
+     (set-active-panel new-db)
+     new-db)))
 
 (ti/reg-event-db
  :pub
  (fn [db [_ pub]]
-   (update db :pubs conj pub)))
+   (assoc-in db [:pubs (:id pub)] pub)))
 
 (rf/reg-event-fx
  :ping
