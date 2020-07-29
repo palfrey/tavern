@@ -116,8 +116,24 @@ impl PubTable {
 
     pub fn add_table(&self, conn: &mut DbConnection) -> Result<()> {
         map_empty(conn.execute(
-            "INSERT INTO pub_table (id, name) VALUES ($1, $2)",
-            &[&self.id, &self.name],
+            "INSERT INTO pub_table (id, name, pub_id) VALUES ($1, $2, $3)",
+            &[&self.id, &self.name, &self.pub_id],
         ))
+    }
+
+    pub fn delete_table(conn: &mut DbConnection, table_id: Uuid) -> Result<Option<Uuid>> {
+        let patrons = conn.query(
+            "SELECT id FROM person WHERE person.table_id = $1",
+            &[&table_id],
+        )?;
+        if patrons.is_empty() {
+            let pubs = conn.query(
+                "DELETE FROM pub_table WHERE id = $1 RETURNING pub_id",
+                &[&table_id],
+            )?;
+            Ok(Some(pubs.get(0).get("pub_id")))
+        } else {
+            Ok(None)
+        }
     }
 }

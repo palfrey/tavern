@@ -66,6 +66,7 @@ pub enum Command {
     CreateTable { pub_id: Uuid, name: String },
     ListTables { pub_id: Uuid },
     JoinTable { table_id: Uuid },
+    DeleteTable { table_id: Uuid },
     LeaveTable,
     Send { user_id: Uuid, content: String },
     Ping,

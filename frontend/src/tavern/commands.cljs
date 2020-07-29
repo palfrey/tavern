@@ -37,6 +37,9 @@
 (defn join-table [websocket table_id]
   (send-command websocket {"kind" "JoinTable" "table_id" table_id}))
 
+(defn delete-table [websocket table_id]
+  (send-command websocket {"kind" "DeleteTable" "table_id" table_id}))
+
 (defn get-person [websocket user_id]
   (send-command websocket {"kind" "GetPerson" "user_id" user_id}))
 
@@ -50,4 +53,5 @@
       (rf/dispatch [:tables (apply hash-map (flatten (map #(vector (:id %) %) (:list msg))))])
       "Pong" (do)
       "Pub" (rf/dispatch [:pub (:data msg)])
+      "Table" (rf/dispatch [:table (:data msg)])
       "Person" (rf/dispatch [:person (:data msg)]))))

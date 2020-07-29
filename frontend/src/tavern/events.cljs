@@ -139,17 +139,15 @@
  (fn [db [_ tables]]
    (assoc db :tables tables)))
 
-(defn determine-active-panel [db]
+(defn get-me [db]
   (if-let [peer-id (-> db :peer-id)]
-    (do
-      (js/console.log "peer-id" peer-id)
-      (if-let [me (get (get db :persons {}) peer-id)]
-        (do
-          (js/console.log "me" (clj->js me))
-          (if-let [pub (:pub_id me)]
-            :pub-panel
-            :home-panel))
-        :home-panel))
+    (get (get db :persons {}) peer-id)))
+
+(defn determine-active-panel [db]
+  (if-let [me (get-me db)]
+    (if-let [pub (:pub_id me)]
+      :pub-panel
+      :home-panel)
     :home-panel))
 
 (defn set-active-panel [db]
@@ -167,6 +165,8 @@
  :person
  (fn [db [_ person]]
    (commands/list-pubs (:websocket db))
+   (if (and (= (:peer-id db) (:id person)) (-> person :pub_id nil? not))
+     (commands/list-tables (:websocket db) (:pub_id person)))
    (let [new-db (assoc-in db [:persons (:id person)] person)]
      (set-active-panel new-db)
      new-db)))
@@ -175,6 +175,11 @@
  :pub
  (fn [db [_ pub]]
    (assoc-in db [:pubs (:id pub)] pub)))
+
+(ti/reg-event-db
+ :table
+ (fn [db [_ table]]
+   (assoc-in db [:tables (:id table)] table)))
 
 (rf/reg-event-fx
  :ping

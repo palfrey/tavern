@@ -9,6 +9,7 @@ use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::result::Result as StdResult;
 use uuid::Uuid;
+use ws::WebsocketContext;
 
 lazy_static! {
     static ref ADDRS: RwLock<HashMap<Uuid, Addr<Client>>> = RwLock::new(HashMap::new());
@@ -65,6 +66,15 @@ impl Handler<ClientMsg> for Client {
         );
         Ok(())
     }
+}
+
+fn send_tables(ctx: &mut WebsocketContext<Client>, conn: &mut DbConnection, pub_id: Uuid) {
+    ctx.text(
+        serde_json::to_string(&Response::Tables {
+            list: PubTable::get_tables(conn, pub_id).unwrap(),
+        })
+        .unwrap(),
+    );
 }
 
 impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
@@ -129,10 +139,7 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                                 };
                                 new_table.add_table(&mut conn).unwrap();
                                 Person::set_table(&mut conn, self.id, table_id).unwrap();
-                                ctx.text(
-                                    serde_json::to_string(&Response::Table { data: new_table })
-                                        .unwrap(),
-                                );
+                                send_tables(ctx, &mut conn, pub_id);
                             }
                             Command::JoinTable { table_id } => {
                                 // Only allowed to be in one pub
@@ -148,12 +155,7 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                                 self.return_self(ctx, &mut conn);
                             }
                             Command::ListTables { pub_id } => {
-                                ctx.text(
-                                    serde_json::to_string(&Response::Tables {
-                                        list: PubTable::get_tables(&mut conn, pub_id).unwrap(),
-                                    })
-                                    .unwrap(),
-                                );
+                                send_tables(ctx, &mut conn, pub_id);
                             }
                             Command::Send { user_id, content } => {
                                 ADDRS
@@ -174,6 +176,12 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                                     })
                                     .unwrap(),
                                 );
+                            }
+                            Command::DeleteTable { table_id } => {
+                                let pub_id = PubTable::delete_table(&mut conn, table_id)
+                                    .unwrap()
+                                    .unwrap();
+                                send_tables(ctx, &mut conn, pub_id);
                             }
                             Command::Ping => {
                                 ctx.text(serde_json::to_string(&Response::Pong).unwrap());

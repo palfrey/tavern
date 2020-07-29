@@ -149,20 +149,37 @@
   [:div "This is the About Page."])
 
 (defn pub-panel []
-  (let [current_pub @(rf/subscribe [:current-pub])]
-    [:div [:h1 (str "Pub " (:name current_pub))]
-     [:br]
-     [:button {:class "btn btn-danger"
-               :onClick #(commands/leave-pub @(rf/subscribe [:websocket]))} "Leave pub"]
-     [:input {:type "button" :value "Update table list" :onClick #(commands/list-tables @(rf/subscribe [:websocket]) (:id current_pub))}]
-     [:div "Tables"]
-     [:ul
-      (for [table (vals @(rf/subscribe [:tables]))]
-        ^{:key (:id table)}
-        [:li (:name table)
-         [:span " "]
-         [:button {:class "btn btn-primary" :onClick #(commands/join-table @(rf/subscribe [:websocket]) (:id table))} "Join"]
-         [:span " "]])]]))
+  (let [tableName (reagent/atom "")]
+    (fn []
+      (let [current_pub @(rf/subscribe [:current-pub])]
+        [:div [:h1 (str "Pub " (:name current_pub))]
+         [:br]
+         [:button {:class "btn btn-danger"
+                   :onClick #(commands/leave-pub @(rf/subscribe [:websocket]))} "Leave pub"]
+         [:br]
+         [:input {:type "button" :class "btn btn-primary" :value "Update table list" :onClick #(commands/list-tables @(rf/subscribe [:websocket]) (:id current_pub))}]
+         [:div "Tables"]
+         [:ul
+          (for [table (vals @(rf/subscribe [:tables]))]
+            ^{:key (:id table)}
+            [:li (:name table)
+             [:span " "]
+             [:button {:class "btn btn-primary" :onClick #(commands/join-table @(rf/subscribe [:websocket]) (:id table))} "Join"]
+             [:span " "]
+             (if (= (:persons table) [])
+               [:button {:class "btn btn-danger"
+                         :onClick #(commands/delete-table @(rf/subscribe [:websocket]) (:id table))} "Delete"] [:div])])]
+         [:form
+          [:div {:class "form-group"}
+           [:label {:for "tableName"} "New table"]
+           [:input {:type "text"
+                    :class "form-control"
+                    :id "tableName"
+                    :placeholder "Enter table name"
+                    :value @tableName
+                    :on-change (fn [evt]
+                                 (reset! tableName (-> evt .-target .-value)))}]]
+          [:button {:type "button" :class "btn btn-primary" :onClick #(commands/create-table @(rf/subscribe [:websocket]) (:id current_pub) @tableName)} "Create table"]]]))))
 
 (defn- panels [panel-name]
   (case panel-name
