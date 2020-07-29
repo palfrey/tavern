@@ -192,9 +192,10 @@
           [:button {:type "button" :class "btn btn-primary" :onClick #(commands/create-table @(rf/subscribe [:websocket]) (:id current_pub) @tableName)} "Create table"]]]))))
 
 (defn table-panel []
-  (let [current_table @(rf/subscribe [:current-table])]
+  (let [current_pub @(rf/subscribe [:current-pub])
+        current_table @(rf/subscribe [:current-table])]
     [:div
-     [:h1 "Table " (:name current_table)]
+     [:h1 (gstring/format "Pub %s: Table %s" (:name current_pub) (:name current_table))]
      [:br]
      [:button {:class "btn btn-danger"
                :onClick #(commands/leave-table @(rf/subscribe [:websocket]))} "Leave table"]]))
