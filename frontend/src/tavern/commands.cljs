@@ -37,6 +37,9 @@
 (defn join-table [websocket table_id]
   (send-command websocket {"kind" "JoinTable" "table_id" table_id}))
 
+(defn leave-table [websocket]
+  (send-command websocket {"kind" "LeaveTable"}))
+
 (defn delete-table [websocket table_id]
   (send-command websocket {"kind" "DeleteTable" "table_id" table_id}))
 

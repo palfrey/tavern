@@ -68,6 +68,16 @@
        {})))
 
   (rf/reg-sub
+   :current-table
+   (fn [_]
+     [(rf/subscribe [:me]) (rf/subscribe [:tables])])
+
+   (fn [[me tables] _]
+     (if-let [table_id (:table_id me)]
+       (get tables table_id)
+       {})))
+
+  (rf/reg-sub
    :websocket
    (fn [db _]
      (:websocket db)))
@@ -181,11 +191,20 @@
                                  (reset! tableName (-> evt .-target .-value)))}]]
           [:button {:type "button" :class "btn btn-primary" :onClick #(commands/create-table @(rf/subscribe [:websocket]) (:id current_pub) @tableName)} "Create table"]]]))))
 
+(defn table-panel []
+  (let [current_table @(rf/subscribe [:current-table])]
+    [:div
+     [:h1 "Table " (:name current_table)]
+     [:br]
+     [:button {:class "btn btn-danger"
+               :onClick #(commands/leave-table @(rf/subscribe [:websocket]))} "Leave table"]]))
+
 (defn- panels [panel-name]
   (case panel-name
     :home-panel [home-panel]
     :about-panel [about-panel]
     :pub-panel [pub-panel]
+    :table-panel [table-panel]
     [:div (str "Missing panel " panel-name)]))
 
 (defn show-panel [panel-name]

@@ -145,9 +145,11 @@
 
 (defn determine-active-panel [db]
   (if-let [me (get-me db)]
-    (if-let [pub (:pub_id me)]
-      :pub-panel
-      :home-panel)
+    (if-let [_ (:table_id me)]
+      :table-panel
+      (if-let [_ (:pub_id me)]
+        :pub-panel
+        :home-panel))
     :home-panel))
 
 (defn set-active-panel [db]
