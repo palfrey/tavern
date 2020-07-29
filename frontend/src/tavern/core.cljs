@@ -130,7 +130,7 @@
     (fn []
       [:div
        [:h1 "Tavern"]
-       [:input {:type "button" :value "Update pub list" :onClick #(commands/list-pubs @(rf/subscribe [:websocket]))}]
+       [:input {:type "button" :class "btn btn-secondary" :value "Update pub list" :onClick #(commands/list-pubs @(rf/subscribe [:websocket]))}]
        [:div "Pubs"]
        [:ul
         (for [pub (vals @(rf/subscribe [:pubs]))]
@@ -167,7 +167,7 @@
          [:button {:class "btn btn-danger"
                    :onClick #(commands/leave-pub @(rf/subscribe [:websocket]))} "Leave pub"]
          [:br]
-         [:input {:type "button" :class "btn btn-primary" :value "Update table list" :onClick #(commands/list-tables @(rf/subscribe [:websocket]) (:id current_pub))}]
+         [:input {:type "button" :class "btn btn-secondary" :value "Update table list" :onClick #(commands/list-tables @(rf/subscribe [:websocket]) (:id current_pub))}]
          [:div "Tables"]
          [:ul
           (for [table (vals @(rf/subscribe [:tables]))]
