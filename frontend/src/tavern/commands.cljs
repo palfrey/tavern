@@ -4,13 +4,16 @@
 
 (defn send-command [websocket msg]
   (let [data (.stringify js/JSON (clj->js msg))]
-    (js/console.log "Sending" data)
-    (.send websocket data)))
+    (if (= (.-readyState websocket) 1)
+      (do
+        (js/console.log "Sending" data)
+        (.send websocket data))
+      (do
+        (js/console.log "Attempt to send when closed" data)
+        (rf/dispatch [:create-ws])))))
 
 (defn ping [websocket]
-  (if (= (.-readyState websocket) 1)
-    (send-command websocket {"kind" "Ping"})
-    (js/console.log "Can't ping websocket" websocket))
+  (send-command websocket {"kind" "Ping"})
   (= (.-readyState websocket) 1))
 
 (defn list-pubs [websocket]

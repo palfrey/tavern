@@ -67,16 +67,6 @@
  (fn [db [_ _]]
    (assoc db :time (js/Date.))))
 
-(rf/reg-event-db
- :peers-timer
- (fn [db [_ _]]
-  ;  (.listAllPeers
-  ;   (:peer db)
-  ;   (fn [peerids]
-  ;     (println "peers" (js->clj peerids))
-  ;     (rf/dispatch [:peers (js->clj peerids)])))
-   db))
-
 (ti/reg-event-db
  :peers
  (fn [db [_ peers]]
