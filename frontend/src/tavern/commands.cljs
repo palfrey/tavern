@@ -49,6 +49,9 @@
 (defn get-person [websocket user_id]
   (send-command websocket {"kind" "GetPerson" "user_id" user_id}))
 
+(defn send [websocket user_id content]
+  (send-command websocket {"kind" "Send" "user_id" user_id "content" content}))
+
 (defn handle-event [data]
   (let [msg (js->clj (.parse js/JSON data) :keywordize-keys true)]
     (js/console.log "decoded" (str msg))
@@ -60,4 +63,5 @@
       "Pong" (do)
       "Pub" (rf/dispatch [:pub (:data msg)])
       "Table" (rf/dispatch [:table (:data msg)])
-      "Person" (rf/dispatch [:person (:data msg)]))))
+      "Person" (rf/dispatch [:person (:data msg)])
+      "Data" (js/console.log "Data" (str msg)))))

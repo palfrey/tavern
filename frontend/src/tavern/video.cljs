@@ -1,6 +1,21 @@
 (ns tavern.video
   (:require
-   [reagent.core :as reagent]))
+   [reagent.core :as reagent]
+   [re-frame.core :as rf]
+   [tavern.commands :as commands]))
+
+(defn media-stream-wrapper []
+  (let [ms (reagent/atom nil)
+        last-error (reagent/atom nil)]
+    (.catch
+     (.then (.getUserMedia (-> js/navigator .-mediaDevices) (js-obj "video" true "audio" false "width" 320))
+            (fn [stream]
+              (js/console.log "got stream" stream)
+              (reset! ms stream)))
+     (fn [err]
+       (js/console.log "usermedia error" err)
+       (reset! last-error err)))
+    {:stream ms :error last-error}))
 
 (defn video-component [name]
   (let [rtcpeer (reagent/atom nil)
@@ -16,8 +31,10 @@
                 (let [conn (js/RTCPeerConnection.)
                       tracks (.getTracks localstream)]
                   (doall (map #(.addTrack conn % localstream) tracks))
-                  (set! (.-onicecandidate conn) (fn [candidate]
-                                                  (js/console.log "candidate" candidate)))
+                  (set! (.-onicecandidate conn)
+                        (fn [candidate]
+                          (js/console.log "candidate" candidate)
+                          (commands/send @(rf/subscribe [:websocket]) name (.stringify js/JSON candidate))))
                   (set! (.-onnegotiationneeded conn)
                         (fn []
                           (.then (.createOffer conn)
@@ -25,9 +42,11 @@
                                    (js/console.log "offer" offer)
                                    (.then (.setLocalDescription conn offer)
                                           (fn []
-                                            (js/console.log "local desc" (.-localDescription conn))))))))
-                  (set! (.-ontrack conn) (fn [event]
-                                           (js/console.log "ontrack" event)))
+                                            (js/console.log "local desc" (.-localDescription conn))
+                                            (commands/send @(rf/subscribe [:websocket]) name (.stringify js/JSON (.-localDescription conn)))))))))
+                  (set! (.-ontrack conn)
+                        (fn [event]
+                          (js/console.log "ontrack" event)))
                   (reset! rtcpeer conn))))))]
 
     (reagent/create-class

@@ -5,39 +5,33 @@
    [tavern.intervals]
    [tavern.interceptors :as ti]))
 
-(defn getMediaStream []
-  (.catch
-   (.then (.getUserMedia (-> js/navigator .-mediaDevices) (js-obj "video" true "audio" false "width" 320))
-          (fn [stream]
-            (js/console.log "got stream" stream)
-            (rf/dispatch [:mediastream stream])))
-   (fn [err]
-     (js/console.log "usermedia error" err))))
+(defn create-ws [peer-id]
+  (let [websocket (js/WebSocket. (str "wss://localhost:8000/ws/" peer-id))]
+    (.addEventListener
+     websocket "open"
+     (fn [event]
+       (js/console.log "Socket open")
+       (commands/get-person websocket peer-id)))
+    (.addEventListener
+     websocket "message"
+     (fn [event]
+       (commands/handle-event (.-data event))))
+    (.addEventListener
+     websocket "error"
+     (fn [event]
+       (js/console.log "Error" event)))
+    (.addEventListener
+     websocket "close"
+     (fn [event]
+       (js/console.log "close" event)))
+    websocket))
 
 (ti/reg-event-db
  :create-ws
  (fn [db _]
    (let [db (if (contains? db :peer-id) db (assoc db :peer-id (str (random-uuid))))
-         websocket (js/WebSocket. (str "wss://localhost:8000/ws/" (str (:peer-id db))))
-         db (assoc db :websocket websocket)]
-     (.addEventListener
-      websocket "open"
-      (fn [event]
-        (js/console.log "Socket open")
-        (commands/get-person websocket (:peer-id db))
-        (commands/list-pubs websocket)))
-     (.addEventListener
-      websocket "message"
-      (fn [event]
-        (commands/handle-event (.-data event))))
-     (.addEventListener
-      websocket "error"
-      (fn [event]
-        (js/console.log "Error" event)))
-     (.addEventListener
-      websocket "close"
-      (fn [event]
-        (js/console.log "close" event)))
+         existing-socket (:websocket db)
+         db (if (or (nil? existing-socket) (not= (.-readyState existing-socket) 1)) (assoc db :websocket (create-ws (-> db :peer-id str))) db)]
      db)))
 
 (rf/reg-event-fx

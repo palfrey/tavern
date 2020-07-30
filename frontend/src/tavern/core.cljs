@@ -85,10 +85,9 @@
   (rf/reg-sub
    :mediastream
    (fn [db _]
-     (let [ms (get db :mediastream)]
-       (if (nil? ms)
-         (events/getMediaStream))
-       ms))))
+     (if-let [ms (get db :mediastream)]
+       @(:stream ms)
+       nil))))
 
 (defn clock []
   [:div.example-clock
@@ -246,11 +245,11 @@
   (rf/clear-subscription-cache!)
   (ti/interval-handler {:action :clean})
   (reg-subs)
+  (rf/dispatch [:mediastream (video/media-stream-wrapper)])
   (rf/dispatch [:determine-active-panel])
   (render))
 
 (defn ^:export init []
   (js/console.log "init")
   (rf/dispatch-sync [:create-ws])
-  ;(events/getMediaStream)
   (start))
