@@ -46,6 +46,7 @@ impl Client {
 }
 
 struct ClientMsg {
+    author: Uuid,
     payload: String,
 }
 
@@ -59,7 +60,7 @@ impl Handler<ClientMsg> for Client {
     fn handle(&mut self, msg: ClientMsg, ctx: &mut Self::Context) -> Self::Result {
         ctx.text(
             serde_json::to_string(&Response::Data {
-                author: self.id,
+                author: msg.author,
                 content: msg.payload,
             })
             .unwrap(),
@@ -158,12 +159,21 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                                 send_tables(ctx, &mut conn, pub_id);
                             }
                             Command::Send { user_id, content } => {
-                                ADDRS
-                                    .read()
-                                    .get(&user_id)
-                                    .unwrap()
-                                    .try_send(ClientMsg { payload: content })
-                                    .unwrap();
+                                match ADDRS.read().get(&user_id) {
+                                    Some(addr) => addr
+                                        .try_send(ClientMsg {
+                                            author: self.id,
+                                            payload: content,
+                                        })
+                                        .unwrap(),
+                                    None => {
+                                        println!(
+                                            "Can't send to {}. Available addrs are {:?}",
+                                            user_id,
+                                            ADDRS.read()
+                                        );
+                                    }
+                                };
                             }
                             Command::SetName { name } => {
                                 Person::set_name(&mut conn, self.id, name).unwrap();
