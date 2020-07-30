@@ -162,7 +162,7 @@
   (let [tableName (reagent/atom "")]
     (fn []
       (let [current_pub @(rf/subscribe [:current-pub])]
-        [:div [:h1 (str "Pub " (:name current_pub))]
+        [:div [:h1 (:name current_pub)]
          [:br]
          [:button {:class "btn btn-danger"
                    :onClick #(commands/leave-pub @(rf/subscribe [:websocket]))} "Leave pub"]
@@ -195,7 +195,7 @@
   (let [current_pub @(rf/subscribe [:current-pub])
         current_table @(rf/subscribe [:current-table])]
     [:div
-     [:h1 (gstring/format "Pub %s: Table %s" (:name current_pub) (:name current_table))]
+     [:h1 (gstring/format "%s: %s" (:name current_pub) (:name current_table))]
      [:br]
      [:button {:class "btn btn-danger"
                :onClick #(commands/leave-table @(rf/subscribe [:websocket]))} "Leave table"]]))
