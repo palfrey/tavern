@@ -66,33 +66,6 @@
  :timer
  (fn [db [_ _]]
    (assoc db :time (js/Date.))))
-
-(ti/reg-event-db
- :peers
- (fn [db [_ peers]]
-   (let [existing-peers (get db :peers {})
-         existing-peer-ids (set (keys existing-peers))
-         peers (set (remove #{(:peer-id db)} peers))
-         new-peers (clojure.set/difference peers existing-peer-ids)
-         missing-peers (clojure.set/difference existing-peer-ids peers)
-         new-peers-as-dict (apply hash-map (flatten (map #(vector % {}) new-peers)))
-         revised-peers (merge (apply hash-map (flatten (filter (fn [[k v]] (not (contains? (set missing-peers) k))) existing-peers))) new-peers-as-dict)]
-     (if (-> db :mediastream nil? not)
-       (doall (for [peer new-peers]
-                (do (js/console.log "Calling" peer)
-                    (rf/dispatch [:calling peer])
-                    (rf/dispatch [:status peer :calling])
-                    (let [call (.call (:peer db) peer (:mediastream db))]
-                      (.on call "error"
-                           (fn [err]
-                             (js/console.log "Calling peer error" err)))
-                      (.on call "stream"
-                           (fn [remoteStream]
-                             (js/console.log "Got stream for" peer remoteStream)
-                             (rf/dispatch [:set-stream peer remoteStream]))))))))
-
-     (assoc db :peers revised-peers))))
-
 (ti/reg-event-db
  :peer-id
  (fn [db [_ id]]

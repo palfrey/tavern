@@ -85,7 +85,10 @@
   (rf/reg-sub
    :mediastream
    (fn [db _]
-     (get db :mediastream nil))))
+     (let [ms (get db :mediastream)]
+       (if (nil? ms)
+         (events/getMediaStream))
+       ms))))
 
 (defn clock []
   [:div.example-clock
@@ -96,12 +99,13 @@
 
 (defn getstreams []
   (let [peerid @(rf/subscribe [:peer-id])
-        stream @(rf/subscribe [:mediastream])]
+        stream @(rf/subscribe [:mediastream])
+        peers (get @(rf/subscribe [:current-table]) :persons [])]
     (if (or (nil? peerid) (nil? stream))
       []
       (do
-        (cons [peerid {:stream stream}]
-              (seq @(rf/subscribe [:peers])))))))
+        (cons ^{:key peerid} [video/video-component peerid {:type :local :stream stream}]
+              (map #(with-meta (vector video/video-component % {:type :remote :localstream stream}) {:key %}) peers))))))
 
 (defn videos []
   (let [streams (getstreams)
@@ -117,13 +121,11 @@
          (for [y (range size)
                :let [idx (+ y (* x size))]
                :when (< idx total)]
-           (let [entry (nth streams idx)
-                 id (first entry)
-                 config (second entry)]
+           (let [entry (nth streams idx)]
              ^{:key (gstring/format "stream-%d" idx)}
              [:td {:style {:border 1 :border-style "solid" :border-color "black"} :width (gstring/format "%f%%" (/ 100 size))}
               [:div {:style {:color "white"}} (gstring/format "stream-%d" idx)]
-              [video/video-component (gstring/format "stream-%d" idx) config]]))])]]))
+              entry]))])]]))
 
 (defn home-panel []
   (let [pubName (reagent/atom "")]
@@ -152,8 +154,7 @@
                   :value @pubName
                   :on-change (fn [evt]
                                (reset! pubName (-> evt .-target .-value)))}]]
-        [:button {:type "button" :class "btn btn-primary" :onClick #(commands/create-pub @(rf/subscribe [:websocket]) @pubName)} "Create pub"]]
-       [videos]])))
+        [:button {:type "button" :class "btn btn-primary" :onClick #(commands/create-pub @(rf/subscribe [:websocket]) @pubName)} "Create pub"]]])))
 
 (defn about-panel []
   [:div "This is the About Page."])
@@ -198,7 +199,8 @@
      [:h1 (gstring/format "%s: %s" (:name current_pub) (:name current_table))]
      [:br]
      [:button {:class "btn btn-danger"
-               :onClick #(commands/leave-table @(rf/subscribe [:websocket]))} "Leave table"]]))
+               :onClick #(commands/leave-table @(rf/subscribe [:websocket]))} "Leave table"]
+     [videos]]))
 
 (defn- panels [panel-name]
   (case panel-name
