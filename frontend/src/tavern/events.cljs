@@ -82,7 +82,13 @@
  :msg
  (fn [db [_ peer msg]]
    (if-let [conn (get-in db [:peers peer :connection])]
-     (video/handle-msg conn (.parse js/JSON msg)))
+     (video/handle-msg peer conn (.parse js/JSON msg)))
+   db))
+
+(ti/reg-event-db
+ :send
+ (fn [db [_ peer msg]]
+   (commands/send (:websocket db) peer msg)
    db))
 
 (ti/reg-event-db
