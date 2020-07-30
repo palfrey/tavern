@@ -3,7 +3,8 @@
    [re-frame.core :as rf]
    [tavern.commands :as commands]
    [tavern.intervals]
-   [tavern.interceptors :as ti]))
+   [tavern.interceptors :as ti]
+   [tavern.video :as video]))
 
 (defn create-ws [peer-id]
   (let [websocket (js/WebSocket. (str "wss://localhost:8000/ws/" peer-id))]
@@ -31,7 +32,7 @@
  (fn [db _]
    (let [db (if (contains? db :peer-id) db (assoc db :peer-id (str (random-uuid))))
          existing-socket (:websocket db)
-         db (if (or (nil? existing-socket) (not= (.-readyState existing-socket) 1)) (assoc db :websocket (create-ws (-> db :peer-id str))) db)]
+         db (if (or (nil? existing-socket) (contains? #{2 3} (.-readyState existing-socket))) (assoc db :websocket (create-ws (-> db :peer-id str))) db)]
      db)))
 
 (rf/reg-event-fx
@@ -60,6 +61,7 @@
  :timer
  (fn [db [_ _]]
    (assoc db :time (js/Date.))))
+
 (ti/reg-event-db
  :peer-id
  (fn [db [_ id]]
@@ -71,20 +73,17 @@
    (assoc db :mediastream mediastream)))
 
 (ti/reg-event-db
- :set-stream
- (fn [db [_ peer remoteStream]]
+ :peer
+ (fn [db [_ peer connection]]
    (js/console.log "Storing stream for" (clj->js peer))
-   (assoc-in db [:peers peer :stream] remoteStream)))
+   (assoc-in db [:peers peer :connection] connection)))
 
 (ti/reg-event-db
- :calling
- (fn [db [_ peer]]
-   (assoc-in db [:peers peer :calling] true)))
-
-(ti/reg-event-db
- :status
- (fn [db [_ peer kind]]
-   (assoc-in db [:peers peer :status] kind)))
+ :msg
+ (fn [db [_ peer msg]]
+   (if-let [conn (get-in db [:peers peer :connection])]
+     (video/handle-msg conn (.parse js/JSON msg)))
+   db))
 
 (ti/reg-event-db
  :pubs

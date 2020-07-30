@@ -3,14 +3,16 @@
    [re-frame.core :as rf]))
 
 (defn send-command [websocket msg]
-  (let [data (.stringify js/JSON (clj->js msg))]
-    (if (= (.-readyState websocket) 1)
+  (let [data (.stringify js/JSON (clj->js msg))
+        state (.-readyState websocket)]
+    (if (= state 1)
       (do
         (js/console.log "Sending" data)
         (.send websocket data))
       (do
-        (js/console.log "Attempt to send when closed" data)
-        (rf/dispatch [:create-ws])))))
+        (js/console.log "Attempt to send when not open" state data)
+        (if (not= state 0)
+          (rf/dispatch [:create-ws]))))))
 
 (defn ping [websocket]
   (send-command websocket {"kind" "Ping"})
@@ -64,4 +66,4 @@
       "Pub" (rf/dispatch [:pub (:data msg)])
       "Table" (rf/dispatch [:table (:data msg)])
       "Person" (rf/dispatch [:person (:data msg)])
-      "Data" (js/console.log "Data" (str msg)))))
+      "Data" (rf/dispatch [:msg (:author msg) (:content msg)]))))

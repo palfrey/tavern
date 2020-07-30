@@ -99,7 +99,8 @@
 (defn getstreams []
   (let [peerid @(rf/subscribe [:peer-id])
         stream @(rf/subscribe [:mediastream])
-        peers (get @(rf/subscribe [:current-table]) :persons [])]
+        peers (get @(rf/subscribe [:current-table]) :persons [])
+        peers (filter #(not= % peerid) peers)]
     (if (or (nil? peerid) (nil? stream))
       []
       (do

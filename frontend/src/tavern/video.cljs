@@ -17,6 +17,11 @@
        (reset! last-error err)))
     {:stream ms :error last-error}))
 
+(defn handle-msg [conn msg]
+  (if (= (.-type msg) "offer")
+    (.setRemoteDescription @conn msg)
+    (js/console.log "video msg" (.stringify js/JSON msg))))
+
 (defn video-component [name]
   (let [rtcpeer (reagent/atom nil)
         update
@@ -46,11 +51,20 @@
                                             (commands/send @(rf/subscribe [:websocket]) name (.stringify js/JSON (.-localDescription conn)))))))))
                   (set! (.-ontrack conn)
                         (fn [event]
-                          (js/console.log "ontrack" event)))
-                  (reset! rtcpeer conn))))))]
+                          (let [remoteStream (aget (.-streams event) 0)]
+                            (js/console.log "ontrack" event remoteStream)
+                            (set! (.-srcObject element) remoteStream))))
+                  (reset! rtcpeer conn)
+                  (rf/dispatch [:peer name rtcpeer]))))))]
 
     (reagent/create-class
      {:reagent-render (fn [] [:video {:id name :autoPlay true}])
       :component-did-mount update
       :component-did-update update
+      :component-will-unmount (fn []
+                                (js/console.log "unmounting " name)
+                                (if-let [peer @rtcpeer]
+                                  (do
+                                    (reset! rtcpeer nil)
+                                    (.close peer))))
       :display-name "video-component"})))
