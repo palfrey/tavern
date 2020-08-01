@@ -165,7 +165,7 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                                             author: self.id,
                                             payload: content,
                                         })
-                                        .unwrap(),
+                                        .unwrap_or_default(),
                                     None => {
                                         println!(
                                             "Can't send to {}. Available addrs are {:?}",
