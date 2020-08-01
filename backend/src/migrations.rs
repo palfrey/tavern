@@ -66,6 +66,26 @@ impl PostgresMigration for CreateAll {
     }
 }
 
+struct AddLastUpdated;
+migration!(AddLastUpdated, 2, "last_updated in person");
+
+impl PostgresMigration for AddLastUpdated {
+    fn up(&self, transaction: &Transaction) -> Result<(), postgres::Error> {
+        transaction
+            .execute(
+                "ALTER TABLE person ADD COLUMN last_updated TIMESTAMP NOT NULL DEFAULT now()",
+                &[],
+            )
+            .map(|_| ())
+    }
+
+    fn down(&self, transaction: &Transaction) -> Result<(), postgres::Error> {
+        transaction
+            .execute("ALTER TABLE person DROP column last_updated", &[])
+            .map(|_| ())
+    }
+}
+
 pub fn run_migrations(client: &mut Connection) {
     let adapter = PostgresAdapter::new(client);
     // Create the metadata tables necessary for tracking migrations. This is safe to call more than
@@ -75,5 +95,6 @@ pub fn run_migrations(client: &mut Connection) {
     let mut migrator = Migrator::new(adapter);
 
     migrator.register(Box::new(CreateAll));
+    migrator.register(Box::new(AddLastUpdated));
     migrator.up(None).unwrap();
 }

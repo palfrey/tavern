@@ -194,6 +194,7 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                                 send_tables(ctx, &mut conn, pub_id);
                             }
                             Command::Ping => {
+                                Person::update_last(&mut conn, self.id).unwrap();
                                 ctx.text(serde_json::to_string(&Response::Pong).unwrap());
                             }
                         }

@@ -19,17 +19,19 @@ where
     res.map(|_| ()).map_err(|e| e.into())
 }
 
+const PERSON_UP_TO_DATE: &'static str = " person.last_updated > (NOW() - interval '5 minutes')";
+
 impl Person {
     pub fn leave_pub(conn: &mut DbConnection, person_id: Uuid) -> Result<()> {
         map_empty(conn.execute(
-            "UPDATE person SET pub_id = NULL WHERE person.id = $1",
+            "UPDATE person SET last_updated = NOW() AND pub_id = NULL WHERE person.id = $1",
             &[&person_id],
         ))
     }
 
     pub fn leave_table(conn: &mut DbConnection, person_id: Uuid) -> Result<()> {
         map_empty(conn.execute(
-            "UPDATE person SET table_id = NULL WHERE person.id = $1",
+            "UPDATE person SET last_updated = NOW() AND table_id = NULL WHERE person.id = $1",
             &[&person_id],
         ))
     }
@@ -42,6 +44,7 @@ impl Person {
             name: row.get("name"),
             pub_id: row.get("pub_id"),
             table_id: row.get("table_id"),
+            last_updated: row.get("last_updated"),
         })
     }
 
@@ -54,29 +57,36 @@ impl Person {
 
     pub fn set_name(conn: &mut DbConnection, person_id: Uuid, name: String) -> Result<()> {
         map_empty(conn.execute(
-            "UPDATE person SET name = $2 WHERE person.id = $1",
+            "UPDATE person SET last_updated = NOW() AND name = $2 WHERE person.id = $1",
             &[&person_id, &name],
         ))
     }
 
     pub fn set_pub(conn: &mut DbConnection, person_id: Uuid, pub_id: Uuid) -> Result<()> {
         map_empty(conn.execute(
-            "UPDATE person SET pub_id = $2 WHERE person.id = $1",
+            "UPDATE person SET last_updated = NOW() pub_id = $2 WHERE person.id = $1",
             &[&person_id, &pub_id],
         ))
     }
 
     pub fn set_table(conn: &mut DbConnection, person_id: Uuid, table_id: Uuid) -> Result<()> {
         map_empty(conn.execute(
-            "UPDATE person SET table_id = $2 WHERE person.id = $1",
+            "UPDATE person SET last_updated = NOW() AND table_id = $2 WHERE person.id = $1",
             &[&person_id, &table_id],
+        ))
+    }
+
+    pub fn update_last(conn: &mut DbConnection, person_id: Uuid) -> Result<()> {
+        map_empty(conn.execute(
+            "UPDATE person SET last_updated = NOW() WHERE person.id = $1",
+            &[&person_id],
         ))
     }
 }
 
 impl Pub {
     pub fn get_pubs(conn: &mut DbConnection) -> Result<Vec<PubWithPeople>> {
-        Ok(conn.query("SELECT public_house.*, ARRAY_REMOVE(ARRAY_AGG(person.id), NULL) AS persons FROM public_house LEFT JOIN person ON person.pub_id = public_house.id GROUP BY public_house.id", &[])?
+        Ok(conn.query(&format!("SELECT public_house.*, ARRAY_REMOVE(ARRAY_AGG(person.id), NULL) AS persons FROM public_house LEFT JOIN person ON person.pub_id = public_house.id WHERE {} GROUP BY public_house.id", PERSON_UP_TO_DATE), &[])?
         .iter()
         .map(|row| PubWithPeople {
             id: row.get("id"),
@@ -104,7 +114,7 @@ impl Pub {
 
 impl PubTable {
     pub fn get_tables(conn: &mut DbConnection, pub_id: Uuid) -> Result<Vec<TableWithPeople>> {
-        Ok(conn.query("SELECT pub_table.*, ARRAY_REMOVE(ARRAY_AGG(person.id), NULL) AS persons FROM pub_table LEFT JOIN person ON person.table_id = pub_table.id WHERE pub_table.pub_id = $1 GROUP BY pub_table.id", &[&pub_id])?
+        Ok(conn.query(&format!("SELECT pub_table.*, ARRAY_REMOVE(ARRAY_AGG(person.id), NULL) AS persons FROM pub_table LEFT JOIN person ON person.table_id = pub_table.id WHERE pub_table.pub_id = $1 and {} GROUP BY pub_table.id", PERSON_UP_TO_DATE), &[&pub_id])?
         .iter()
         .map(|row| TableWithPeople {
             id: row.get("id"),

@@ -536,6 +536,7 @@ checksum = "c74d84029116787153e02106bf53e66828452a4b325cc8652b788b5967c0a0b6"
 dependencies = [
  "num-integer",
  "num-traits",
+ "serde",
  "time",
 ]
 
@@ -1387,6 +1388,7 @@ version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ffac35b3e0029b404c24a3b82149b4e904f293e8ca4a327eefa24d3ca50df36f"
 dependencies = [
+ "chrono",
  "fallible-iterator",
  "hex",
  "phf",
@@ -1776,6 +1778,7 @@ dependencies = [
  "actix-web",
  "actix-web-actors",
  "anyhow",
+ "chrono",
  "lazy_static",
  "parking_lot 0.11.0",
  "postgres",

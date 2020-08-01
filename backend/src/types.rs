@@ -1,3 +1,4 @@
+use chrono::NaiveDateTime;
 use r2d2_postgres::PostgresConnectionManager;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -51,6 +52,7 @@ pub struct Person {
     pub name: Option<String>,
     pub pub_id: Option<Uuid>,
     pub table_id: Option<Uuid>,
+    pub last_updated: NaiveDateTime,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
