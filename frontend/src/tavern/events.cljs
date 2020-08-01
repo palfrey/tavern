@@ -7,7 +7,8 @@
    [tavern.video :as video]))
 
 (defn create-ws [peer-id]
-  (let [websocket (js/WebSocket. (str "wss://localhost:8000/ws/" peer-id))]
+  (let [hostname (-> js/window .-location .-hostname)
+        websocket (js/WebSocket. (str "wss://" hostname "/ws/" peer-id))]
     (.addEventListener
      websocket "open"
      (fn [event]
