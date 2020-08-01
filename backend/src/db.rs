@@ -24,14 +24,14 @@ const PERSON_UP_TO_DATE: &'static str = " person.last_updated > (NOW() - interva
 impl Person {
     pub fn leave_pub(conn: &mut DbConnection, person_id: Uuid) -> Result<()> {
         map_empty(conn.execute(
-            "UPDATE person SET last_updated = NOW() AND pub_id = NULL WHERE person.id = $1",
+            "UPDATE person SET last_updated = NOW(), pub_id = NULL WHERE person.id = $1",
             &[&person_id],
         ))
     }
 
     pub fn leave_table(conn: &mut DbConnection, person_id: Uuid) -> Result<()> {
         map_empty(conn.execute(
-            "UPDATE person SET last_updated = NOW() AND table_id = NULL WHERE person.id = $1",
+            "UPDATE person SET last_updated = NOW(), table_id = NULL WHERE person.id = $1",
             &[&person_id],
         ))
     }
@@ -57,21 +57,21 @@ impl Person {
 
     pub fn set_name(conn: &mut DbConnection, person_id: Uuid, name: String) -> Result<()> {
         map_empty(conn.execute(
-            "UPDATE person SET last_updated = NOW() AND name = $2 WHERE person.id = $1",
+            "UPDATE person SET last_updated = NOW(), name = $2 WHERE person.id = $1",
             &[&person_id, &name],
         ))
     }
 
     pub fn set_pub(conn: &mut DbConnection, person_id: Uuid, pub_id: Uuid) -> Result<()> {
         map_empty(conn.execute(
-            "UPDATE person SET last_updated = NOW() pub_id = $2 WHERE person.id = $1",
+            "UPDATE person SET last_updated = NOW(), pub_id = $2 WHERE person.id = $1",
             &[&person_id, &pub_id],
         ))
     }
 
     pub fn set_table(conn: &mut DbConnection, person_id: Uuid, table_id: Uuid) -> Result<()> {
         map_empty(conn.execute(
-            "UPDATE person SET last_updated = NOW() AND table_id = $2 WHERE person.id = $1",
+            "UPDATE person SET last_updated = NOW(), table_id = $2 WHERE person.id = $1",
             &[&person_id, &table_id],
         ))
     }
