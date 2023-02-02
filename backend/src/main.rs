@@ -52,7 +52,7 @@ fn main() -> io::Result<()> {
     actix::run(async {
         HttpServer::new(move || {
             App::new()
-                .data(pool.clone())
+                .app_data(web::Data::new(pool.clone()))
                 .route("/ws/{id}", web::get().to(websocket))
                 .route("/{filename:.*}", web::get().to(index))
         })

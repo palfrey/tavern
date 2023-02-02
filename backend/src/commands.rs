@@ -9,7 +9,6 @@ use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::result::Result as StdResult;
 use uuid::Uuid;
-use ws::WebsocketContext;
 
 lazy_static! {
     static ref ADDRS: RwLock<HashMap<Uuid, Addr<Client>>> = RwLock::new(HashMap::new());
@@ -69,7 +68,7 @@ impl Handler<ClientMsg> for Client {
     }
 }
 
-fn send_tables(ctx: &mut WebsocketContext<Client>, conn: &mut DbConnection, pub_id: Uuid) {
+fn send_tables(ctx: &mut ws::WebsocketContext<Client>, conn: &mut DbConnection, pub_id: Uuid) {
     ctx.text(
         serde_json::to_string(&Response::Tables {
             list: PubTable::get_tables(conn, pub_id).unwrap(),
