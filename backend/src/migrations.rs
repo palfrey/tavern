@@ -26,7 +26,7 @@ impl PostgresMigration for CreateAll {
             name VARCHAR NOT NULL,
             pub_id uuid NOT NULL,
             CONSTRAINT fk_table_pub
-              FOREIGN KEY(pub_id) 
+              FOREIGN KEY(pub_id)
               REFERENCES public_house(id)
         );"#,
                         &[],
@@ -40,7 +40,7 @@ impl PostgresMigration for CreateAll {
             pub_id uuid NULL,
             table_id uuid NULL,
             CONSTRAINT fk_person_pub
-              FOREIGN KEY(pub_id) 
+              FOREIGN KEY(pub_id)
               REFERENCES public_house(id),
             CONSTRAINT fk_person_table
               FOREIGN KEY(table_id)
