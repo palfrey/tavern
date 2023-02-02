@@ -20,12 +20,12 @@ services:
      - postgres
     ports:
      - 5000:5000
-    restart: always
+    restart: unless-stopped
   frontend:
     build: frontend
     volumes:
      - ./frontend:/work
-    restart: always
+    restart: unless-stopped
     ports:
       - 9630:9630 # hot-reload
       - 9000:9000 # nrepl
