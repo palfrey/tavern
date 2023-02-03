@@ -1,9 +1,0 @@
-{:deps {org.clojure/clojurescript {:mvn/version "1.10.758"}
-        thheller/shadow-cljs {:mvn/version "2.10.15"}
-        re-frame {:mvn/version "0.12.0"}
-        reagent {:mvn/version "0.10.0"}
-        day8.re-frame/re-frame-10x {:mvn/version "0.6.0"}
-        binaryage/devtools {:mvn/version "1.0.2"}
-        akiroz.re-frame/storage {:mvn/version "0.1.4"}}
- :aliases {:fmt {:extra-deps {hawk {:mvn/version "0.2.11"}
-                              cljfmt {:mvn/version "0.6.8"}}}}}

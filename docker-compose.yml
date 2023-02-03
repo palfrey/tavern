@@ -4,14 +4,12 @@ services:
     image: postgres:10
     environment:
     - POSTGRES_PASSWORD=mysecretpassword
-    ports:
-    - 5432:5432
   backend:
     build: backend
     command: wait-for-it postgres:5432 -s -t 0 -- cargo watch -s "cargo fmt && cargo run"
     environment:
     - DATABASE_URL=postgresql://postgres:mysecretpassword@postgres:5432/postgres
-    - FRONTEND=/frontend/public/
+    - FRONTEND=/frontend
     - RUST_BACKTRACE=1
     volumes:
     - ./backend:/work:cached
@@ -27,8 +25,7 @@ services:
     - ./frontend:/work
     restart: unless-stopped
     ports:
-    - 9630:9630   # hot-reload
-    - 9000:9000   # nrepl
+    - 9000:9000
   nginx:
     image: nginx:1.19.1
     volumes:
@@ -39,3 +36,4 @@ services:
     - 8000:8000
     links:
     - backend
+    - frontend

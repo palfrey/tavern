@@ -89,13 +89,6 @@
        @(:stream ms)
        nil))))
 
-(defn clock []
-  [:div.example-clock
-   (-> @(rf/subscribe [:time])
-       .toTimeString
-       (str/split " ")
-       first)])
-
 (defn getstreams []
   (let [peerid @(rf/subscribe [:peer-id])
         stream @(rf/subscribe [:mediastream])
@@ -209,37 +202,6 @@
     :pub-panel [pub-panel]
     :table-panel [table-panel]
     [:div (str "Missing panel " panel-name)]))
-
-(defn show-panel [panel-name]
-  [panels panel-name])
-
-(defn main-panel []
-  (let [active-panel (rf/subscribe [:active-panel])]
-    [show-panel @active-panel]))
-
-(defn ui []
-  [:div
-   [:nav {:class "navbar navbar-expand-md navbar-dark bg-dark fixed-top"}
-    [:a {:class "navbar-brand", :href "#"} "Tavern"]
-    [:button {:class "navbar-toggler", :type "button", :data-toggle "collapse", :data-target "#navbarsExampleDefault", :aria-controls "navbarsExampleDefault", :aria-expanded "false", :aria-label "Toggle navigation"}
-     [:span {:class "navbar-toggler-icon"}]]
-    [:div {:class "collapse navbar-collapse", :id "navbarsExampleDefault"}
-     [:ul {:class "navbar-nav mr-auto"}
-      [:li {:class "nav-item active"}
-       [:a {:class "nav-link", :href "#"} "Home "
-        [:span {:class "sr-only"} "(current)"]]]
-      [:li {:class "nav-item"}
-       [:a {:class "nav-link", :href "#"} "Link"]]]
-     [:span {:class "navbar-text"} [clock]]]]
-   [:main {:role "main" :class "container-fluid"}
-    [main-panel]]])
-
-(defn render []
-  (rdom/render [ui]
-               (js/document.getElementById "root")))
-
-(defn ^:dev/before-load stop []
-  (js/console.log "stop"))
 
 (defn ^:dev/after-load start []
   (js/console.log "start")

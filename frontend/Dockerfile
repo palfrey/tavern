@@ -1,9 +1,9 @@
-FROM clojure:openjdk-15-tools-deps-alpine
+FROM alpine:3.17.1
 WORKDIR /work
-RUN apk add --no-cache npm
-ADD package.json package-lock.json /work/
-RUN npm install --no-save
+RUN apk add --no-cache bash nodejs
+ADD pnpm /work
+RUN ./pnpm --version
+ADD package.json pnpm-lock.yaml /work/
+RUN ./pnpm install
 ADD . /work
-ENV CLJ_CACHE=/tmp/clj-cache
-RUN npm run compile
-CMD npm run dev
+CMD ./pnpm dev

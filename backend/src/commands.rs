@@ -109,7 +109,7 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                                 new_pub.add_pub(&mut conn).unwrap();
                                 Person::set_pub(&mut conn, self.id, pub_id).unwrap();
                                 ctx.text(
-                                    serde_json::to_string(&Response::Pub { data: new_pub })
+                                    serde_json::to_string(&Response::CreatePub { data: new_pub })
                                         .unwrap(),
                                 );
                             }
@@ -139,7 +139,12 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                                 };
                                 new_table.add_table(&mut conn).unwrap();
                                 Person::set_table(&mut conn, self.id, table_id).unwrap();
-                                send_tables(ctx, &mut conn, pub_id);
+                                ctx.text(
+                                    serde_json::to_string(&Response::CreateTable {
+                                        data: new_table,
+                                    })
+                                    .unwrap(),
+                                );
                             }
                             Command::JoinTable { table_id } => {
                                 // Only allowed to be in one pub
