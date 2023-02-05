@@ -1,18 +1,18 @@
 import create from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { v4 as uuidv4 } from "uuid";
-import { Pub, Table } from "./Data";
+import { Person, Pub, Table } from "./Data";
 
 interface IUIStore {
   peerId: string;
   peers: { [key: string]: RTCPeerConnection };
   pubs: Pub[];
-  currentPubId: string | null;
   tables: Table[];
-  currentTableId: string | null;
+  me: () => Person | null;
   currentPub: () => Pub | null;
   currentTable: () => Table | null;
   mediaStream: MediaProvider | null;
+  persons: { [key: string]: Person };
 }
 
 export const useUIStore = create<IUIStore>()(
@@ -23,11 +23,20 @@ export const useUIStore = create<IUIStore>()(
           peerId: uuidv4(),
           peers: {},
           pubs: [],
+          persons: {},
           tables: [],
-          currentPubId: null,
-          currentTableId: null,
+          me: () => {
+            {
+              if (get().peerId in get().persons) {
+                return get().persons[get().peerId];
+              } else {
+                return null;
+              }
+            }
+          },
           currentPub: () => {
-            const id = get().currentPubId;
+            const me = get().me();
+            const id = me && me.pub_id;
             if (id === null) {
               return null;
             }

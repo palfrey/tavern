@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useUIStore } from "./Store";
 
 function Clock() {
   const [date, setDate] = useState(new Date());
@@ -18,6 +19,20 @@ function Clock() {
 }
 
 function Core() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const me = useUIStore((s) => s.me());
+  useEffect(() => {
+    if (me === null) {
+      return;
+    }
+    if (me.pub_id === null && location.pathname !== "/Home") {
+      navigate("/Home");
+    }
+    if (me.pub_id !== null && location.pathname !== "/Pub") {
+      navigate("/Pub");
+    }
+  }, [me, location]);
   return (
     <div>
       <nav className="navbar navbar-expand-md navbar-dark bg-dark fixed-top">

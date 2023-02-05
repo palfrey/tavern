@@ -39,6 +39,7 @@ function App() {
       }));
     }
   }, [mediaStream, newMediaStream.mediaStream]);
+
   const router = createHashRouter([
     {
       path: "/",

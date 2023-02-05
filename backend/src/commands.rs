@@ -133,6 +133,7 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                                 self.leave_pub(&mut conn).unwrap();
                                 Person::set_pub(&mut conn, self.id, pub_id).unwrap();
                                 self.return_self(ctx, &mut conn);
+                                send_tables(ctx, &mut conn, pub_id);
                             }
                             Command::CreateTable { pub_id, name } => {
                                 self.leave_table(&mut conn).unwrap();

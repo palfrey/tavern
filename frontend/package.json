@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@tanstack/react-query": "^4.18.0",
+    "immer": "^9.0.19",
     "luxon": "^3",
     "popper.js": "^1.16.1",
     "react": "^16.12.0",

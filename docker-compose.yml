@@ -4,6 +4,8 @@ services:
     image: postgres:10
     environment:
     - POSTGRES_PASSWORD=mysecretpassword
+    ports:
+    - 5432:5432
   backend:
     build: backend
     command: wait-for-it postgres:5432 -s -t 0 -- cargo watch -s "cargo fmt && cargo run"

@@ -1,3 +1,4 @@
+import React from "react";
 import { useState } from "react";
 import {
   createTable,
@@ -11,9 +12,13 @@ import { useWebsocket } from "./Websocket";
 
 export function Pub() {
   const [tableName, setTableName] = useState("");
-  const currentPub = useUIStore((s) => s.currentPub())!;
+  const currentPub = useUIStore((s) => s.currentPub());
   const tables = useUIStore((s) => s.tables);
   const websocket = useWebsocket();
+  if (currentPub === null) {
+    // We'll nav away from here soon...
+    return <React.Fragment />;
+  }
   return (
     <div>
       {" "}
