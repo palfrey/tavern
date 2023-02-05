@@ -1,4 +1,6 @@
-export interface Person {}
+export interface Person {
+  id: string;
+}
 
 export interface Pub {
   id: string;
@@ -8,4 +10,6 @@ export interface Pub {
 
 export interface Table {
   id: string;
+  name: string;
+  persons: Person[];
 }

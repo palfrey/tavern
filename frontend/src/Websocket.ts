@@ -23,8 +23,8 @@ interface PongMessage {
   kind: "Pong";
 }
 
-interface PubMessage {
-  kind: "Pub";
+interface CreatePubMessage {
+  kind: "CreatePub";
   data: Pub;
 }
 
@@ -48,7 +48,7 @@ type SocketMessage =
   | PubsMessage
   | TablesMessage
   | PongMessage
-  | PubMessage
+  | CreatePubMessage
   | TableMessage
   | PersonMessage
   | DataMessage;
@@ -71,14 +71,19 @@ export const useWebsocket = () => {
             pubs: decoded.list,
           }));
           break;
-        // (rf/dispatch [:pubs (apply hash-map (flatten (map #(vector (:id %) %) (:list msg))))])
+        // (rf/dispatch <pubs (apply hash-map (flatten (map {() => vector (id=%) %) (list=msg))))])
         // "Tables"
-        // (rf/dispatch [:tables (apply hash-map (flatten (map #(vector (:id %) %) (:list msg))))])
+        // (rf/dispatch <tables (apply hash-map (flatten (map {() => vector (id=%) %) (list=msg))))])
         // "Pong" (do)
-        // "Pub" (rf/dispatch [:pub (:data msg)])
-        // "Table" (rf/dispatch [:table (:data msg)])
-        // "Person" (rf/dispatch [:person (:data msg)])
-        // "Data" (rf/dispatch [:msg (:author msg) (:content msg)]))))
+        case "CreatePub":
+          useUIStore.setState((s) => ({
+            ...s,
+            pubs: [...s.pubs, decoded.data],
+          }));
+          break;
+        // "Table" (rf/dispatch <table (data=msg)])
+        // "Person" (rf/dispatch <person (data=msg)])
+        // "Data" (rf/dispatch :msg (author=msg) (content=msg)]))))
 
         default:
           console.warn("unknown message", decoded);

@@ -8,6 +8,9 @@ import {
 import Core from "./Core";
 import Home from "./Home";
 import About from "./About";
+import { Pub } from "./Pub";
+import { useEffect } from "react";
+import { useMediaStreamWrapper } from "./Video";
 
 function ErrorPage() {
   const error = useRouteError() as Response;
@@ -26,6 +29,16 @@ function ErrorPage() {
 function App() {
   const store = useUIStore.getState();
   console.debug("app store", JSON.stringify(store));
+  const mediaStream = useUIStore((s) => s.mediaStream);
+  const newMediaStream = useMediaStreamWrapper();
+  useEffect(() => {
+    if (mediaStream === null && newMediaStream.mediaStream !== null) {
+      useUIStore.setState((s) => ({
+        ...s,
+        mediaStream: newMediaStream.mediaStream,
+      }));
+    }
+  }, [mediaStream, newMediaStream.mediaStream]);
   const router = createHashRouter([
     {
       path: "/",
@@ -40,6 +53,7 @@ function App() {
       },
       children: [
         { path: "Home", element: <Home /> },
+        { path: "Pub", element: <Pub /> },
         {
           path: "about",
           element: <About />,

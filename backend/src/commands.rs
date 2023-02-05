@@ -1,6 +1,5 @@
 use crate::error::Result;
-use crate::types::DbConnection;
-use crate::types::{Client, Command, Person, Pub, PubTable, Response};
+use crate::types::{Client, Command, DbConnection, Person, Pub, PubTable, PubWithPeople, Response};
 use actix::prelude::AsyncContext;
 use actix::{Actor, Addr, Handler, Message, StreamHandler};
 use actix_web_actors::ws;
@@ -103,15 +102,21 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                                 let pub_id = Uuid::new_v4();
                                 let new_pub = Pub {
                                     id: pub_id,
-                                    name,
-                                    //people: vec![self.id],
+                                    name: name.clone(),
                                 };
                                 new_pub.add_pub(&mut conn).unwrap();
                                 Person::set_pub(&mut conn, self.id, pub_id).unwrap();
                                 ctx.text(
-                                    serde_json::to_string(&Response::CreatePub { data: new_pub })
-                                        .unwrap(),
+                                    serde_json::to_string(&Response::CreatePub {
+                                        data: PubWithPeople {
+                                            id: pub_id,
+                                            name,
+                                            persons: vec![self.id],
+                                        },
+                                    })
+                                    .unwrap(),
                                 );
+                                self.return_self(ctx, &mut conn);
                             }
                             Command::DeletePub { pub_id } => {
                                 Pub::delete_pub(&mut conn, pub_id).unwrap();
@@ -145,6 +150,7 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                                     })
                                     .unwrap(),
                                 );
+                                self.return_self(ctx, &mut conn);
                             }
                             Command::JoinTable { table_id } => {
                                 // Only allowed to be in one pub

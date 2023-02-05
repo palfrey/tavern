@@ -1,7 +1,3 @@
-//   (defn ping [websocket]
-//     (send-command websocket {"kind" "Ping"})
-//     (= (.-readyState websocket) 1))
-
 interface ListPubsCommand {
   kind: "ListPubs";
 }
@@ -21,11 +17,59 @@ interface CreatePubCommand {
   name: string;
 }
 
+interface LeavePubCommand {
+  kind: "LeavePub";
+  pub_id: string;
+}
+
+interface ListTablesCommand {
+  kind: "ListTables";
+  pub_id: string;
+}
+interface CreateTableCommand {
+  kind: "CreateTable";
+  pub_id: string;
+  name: string;
+}
+interface JoinTableCommand {
+  kind: "JoinTable";
+  table_id: string;
+}
+interface LeaveTableCommand {
+  kind: "LeaveTable";
+  table_id: string;
+}
+interface DeleteTableCommand {
+  kind: "DeleteTable";
+  table_id: string;
+}
+interface GetPersonCommand {
+  kind: "GetPerson";
+  user_id: string;
+}
+interface SendCommand {
+  kind: "Send";
+  user_id: string;
+  content: string;
+}
+interface PingCommand {
+  kind: "Ping";
+}
+
 type Command =
   | ListPubsCommand
   | DeletePubCommand
   | JoinPubCommand
-  | CreatePubCommand;
+  | CreatePubCommand
+  | LeavePubCommand
+  | ListTablesCommand
+  | CreateTableCommand
+  | JoinTableCommand
+  | LeaveTableCommand
+  | DeleteTableCommand
+  | GetPersonCommand
+  | SendCommand
+  | PingCommand;
 
 export const sendCommand = (websocket: WebSocket | null, msg: Command) => {
   const data = JSON.stringify(msg);
@@ -50,8 +94,6 @@ export function listPubs(websocket: WebSocket | null): void {
 export function createPub(websocket: WebSocket | null, name: string) {
   sendCommand(websocket, { kind: "CreatePub", name: name });
 }
-//   (defn create-pub [websocket name]
-//     (send-command websocket {"kind" "CreatePub" "name" name}))
 
 export function deletePub(websocket: WebSocket | null, pubId: string) {
   sendCommand(websocket, { kind: "DeletePub", pub_id: pubId });
@@ -61,29 +103,46 @@ export function joinPub(websocket: WebSocket | null, pubId: string) {
   sendCommand(websocket, { kind: "JoinPub", pub_id: pubId });
 }
 
-//   (defn join-pub [websocket pub_id]
-//     (send-command websocket {"kind" "JoinPub" "pub_id" pub_id}))
+export function leavePub(websocket: WebSocket | null, pubId: string) {
+  sendCommand(websocket, { kind: "LeavePub", pub_id: pubId });
+}
 
-//   (defn leave-pub [websocket]
-//     (send-command websocket {"kind" "LeavePub"}))
+export function listTables(websocket: WebSocket | null, pubId: string) {
+  sendCommand(websocket, { kind: "ListTables", pub_id: pubId });
+}
 
-//   (defn list-tables [websocket pub_id]
-//     (send-command websocket {"kind" "ListTables" "pub_id" pub_id}))
+export function createTable(
+  websocket: WebSocket | null,
+  pubId: string,
+  name: string
+) {
+  sendCommand(websocket, { kind: "CreateTable", pub_id: pubId, name });
+}
 
-//   (defn create-table [websocket pub_id name]
-//     (send-command websocket {"kind" "CreateTable" "pub_id" pub_id "name" name}))
+export function joinTable(websocket: WebSocket | null, tableId: string) {
+  sendCommand(websocket, { kind: "JoinTable", table_id: tableId });
+}
 
-//   (defn join-table [websocket table_id]
-//     (send-command websocket {"kind" "JoinTable" "table_id" table_id}))
+export function leaveTable(websocket: WebSocket | null, tableId: string) {
+  sendCommand(websocket, { kind: "LeaveTable", table_id: tableId });
+}
 
-//   (defn leave-table [websocket]
-//     (send-command websocket {"kind" "LeaveTable"}))
+export function deleteTable(websocket: WebSocket | null, tableId: string) {
+  sendCommand(websocket, { kind: "DeleteTable", table_id: tableId });
+}
 
-//   (defn delete-table [websocket table_id]
-//     (send-command websocket {"kind" "DeleteTable" "table_id" table_id}))
+export function getPerson(websocket: WebSocket | null, userId: string) {
+  sendCommand(websocket, { kind: "GetPerson", user_id: userId });
+}
 
-//   (defn get-person [websocket user_id]
-//     (send-command websocket {"kind" "GetPerson" "user_id" user_id}))
+export function send(
+  websocket: WebSocket | null,
+  userId: string,
+  content: string
+) {
+  sendCommand(websocket, { kind: "Send", user_id: userId, content });
+}
 
-//   (defn send [websocket user_id content]
-//     (send-command websocket {"kind" "Send" "user_id" user_id "content" content}))
+export function ping(websocket: WebSocket | null) {
+  sendCommand(websocket, { kind: "Ping" });
+}
