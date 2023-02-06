@@ -49,10 +49,11 @@ type SocketMessage =
 
 export const useWebsocket = () => {
   const [websocket, setWebsocket] = useState<WebSocket | null>(null);
+  const [settingUp, setSettingUp] = useState(false);
   const peerId = useUIStore((state) => state.peerId);
 
   useEffect(() => {
-    if (websocket === null) {
+    if (websocket === null && !settingUp) {
       const path = `wss://${window.location.hostname}:${window.location.port}/ws/${peerId}`;
       console.log("ws path", path);
       const client = new WebSocket(path);
@@ -97,11 +98,16 @@ export const useWebsocket = () => {
       };
       client.onerror = (error) => {
         console.debug("Websocket error", JSON.stringify(error));
+        if (websocket === null) {
+          setSettingUp(false);
+        }
       };
       client.onclose = (event) => {
         console.debug("Websocket closed", event);
         setWebsocket(null);
+        setSettingUp(false);
       };
+      setSettingUp(true);
       return () => {
         if (websocket != null) {
           console.log("Closing websocket");
@@ -112,7 +118,7 @@ export const useWebsocket = () => {
         }
       };
     }
-  }, [websocket]);
+  }, [websocket, settingUp]);
 
   return websocket;
 };
