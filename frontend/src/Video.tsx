@@ -23,39 +23,6 @@ export function useMediaStreamWrapper() {
   return { mediaStream: ms, lastError };
 }
 
-// (ti/reg-event-db
-//   :msg
-//   (fn [db [_ peer msg]]
-//     (if-let [conn (get-in db [:peers peer :connection])]
-//       (video/handle-msg peer conn (.parse js/JSON msg)))
-//     db))
-
-function handleMsg(
-  websocket: WebSocket,
-  peer: string,
-  conn: RTCPeerConnection,
-  msg: any
-) {
-  console.log("video msg from", peer, JSON.stringify(msg));
-  if (msg === null) {
-    console.log("Null video message from", peer);
-  } else if (msg.type == "offer") {
-    conn.setRemoteDescription(msg);
-    conn.createAnswer().then((answer) => {
-      console.log("answer", answer);
-      conn.setLocalDescription(answer).then(() => {
-        send(websocket, peer, JSON.stringify(conn.localDescription));
-      });
-    });
-  } else if (msg.type == "answer") {
-    conn.setRemoteDescription(msg);
-  } else if (msg.candidate != null) {
-    conn.addIceCandidate(msg);
-  } else {
-    console.log("video msg from", peer, JSON.stringify(msg));
-  }
-}
-
 function VideoComponent({
   name,
   type,
@@ -77,9 +44,6 @@ function VideoComponent({
       console.log("Element is not a video!", element);
       return;
     }
-    // new-argv (reagent/argv comp)
-    // {keys=[stream type localstream]} (last new-argv)]
-    const type: string = "";
 
     console.log("update video", name);
     if (type === "local") {
@@ -192,26 +156,28 @@ export function Videos() {
       }}
     >
       <tbody width="100%">
-        {[...Array(size)].map((x) => (
+        {[...Array(size).keys()].map((x) => (
           <tr key={`row-${x}`} width="100%">
-            {[...Array(size)].map((y) => {
+            {[...Array(size).keys()].map((y) => {
               const idx = x * size + y;
               if (idx >= total) {
                 return <React.Fragment></React.Fragment>;
               }
               const entry = streams[idx];
-              <td
-                key={`stream-${idx}`}
-                style={{
-                  border: 1,
-                  borderStyle: "solid",
-                  borderColor: "black",
-                }}
-                width={size / 100}
-              >
-                <div style={{ color: "white" }}>stream-{idx}</div>
-                entry
-              </td>;
+              return (
+                <td
+                  key={`stream-${idx}`}
+                  style={{
+                    border: 1,
+                    borderStyle: "solid",
+                    borderColor: "black",
+                  }}
+                  width={size / 100}
+                >
+                  <div style={{ color: "white" }}>stream-{idx}</div>
+                  {entry}
+                </td>
+              );
             })}
           </tr>
         ))}

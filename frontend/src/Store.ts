@@ -46,9 +46,26 @@ export const useUIStore = create<IUIStore>()(
             }
             return matching[0];
           },
-          currentTable: () => null,
+          currentTable: () => {
+            const me = get().me();
+            const id = me && me.table_id;
+            if (id === null) {
+              return null;
+            }
+            const matching = get().tables.filter((t) => t.id == id);
+            if (matching.length == 0) {
+              return null;
+            }
+            return matching[0];
+          },
           mediaStream: null,
         } as IUIStore)
-    )
+    ),
+    {
+      partialize: (state) => ({
+        ...state,
+        mediaStream: null,
+      }),
+    }
   )
 );

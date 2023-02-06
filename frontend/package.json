@@ -10,6 +10,7 @@
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
     "react-router-dom": "^6.4.2",
+    "react-singleton-hook": "3.4.0",
     "uuid": "^9.0.0",
     "webrtc-adapter": "^7.6.3",
     "zustand": "4.1.4"

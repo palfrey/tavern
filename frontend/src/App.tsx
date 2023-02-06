@@ -11,6 +11,9 @@ import About from "./About";
 import { Pub } from "./Pub";
 import { useEffect } from "react";
 import { useMediaStreamWrapper } from "./Video";
+import { Table } from "./Table";
+import { ping } from "./commands";
+import { useWebsocket } from "./Websocket";
 
 function ErrorPage() {
   const error = useRouteError() as Response;
@@ -28,9 +31,18 @@ function ErrorPage() {
 
 function App() {
   const store = useUIStore.getState();
-  console.debug("app store", JSON.stringify(store));
+  console.debug("app store", store);
   const mediaStream = useUIStore((s) => s.mediaStream);
   const newMediaStream = useMediaStreamWrapper();
+  const websocket = useWebsocket();
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      ping(websocket);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     if (mediaStream === null && newMediaStream.mediaStream !== null) {
       useUIStore.setState((s) => ({
@@ -55,6 +67,7 @@ function App() {
       children: [
         { path: "Home", element: <Home /> },
         { path: "Pub", element: <Pub /> },
+        { path: "Table", element: <Table /> },
         {
           path: "about",
           element: <About />,

@@ -79,7 +79,7 @@ pub enum Command {
 pub enum Response {
     CreatePub { data: PubWithPeople },
     Pubs { list: Vec<PubWithPeople> },
-    CreateTable { data: PubTable },
+    CreateTable { data: TableWithPeople },
     Tables { list: Vec<TableWithPeople> },
     Person { data: Person },
     Data { author: Uuid, content: String },

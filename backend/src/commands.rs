@@ -1,5 +1,7 @@
 use crate::error::Result;
-use crate::types::{Client, Command, DbConnection, Person, Pub, PubTable, PubWithPeople, Response};
+use crate::types::{
+    Client, Command, DbConnection, Person, Pub, PubTable, PubWithPeople, Response, TableWithPeople,
+};
 use actix::prelude::AsyncContext;
 use actix::{Actor, Addr, Handler, Message, StreamHandler};
 use actix_web_actors::ws;
@@ -141,13 +143,18 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                                 let new_table = PubTable {
                                     id: table_id,
                                     pub_id,
-                                    name,
+                                    name: name.clone(),
                                 };
                                 new_table.add_table(&mut conn).unwrap();
                                 Person::set_table(&mut conn, self.id, table_id).unwrap();
                                 ctx.text(
                                     serde_json::to_string(&Response::CreateTable {
-                                        data: new_table,
+                                        data: TableWithPeople {
+                                            id: table_id,
+                                            pub_id,
+                                            name,
+                                            persons: vec![self.id],
+                                        },
                                     })
                                     .unwrap(),
                                 );

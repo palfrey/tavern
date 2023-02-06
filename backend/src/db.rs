@@ -120,7 +120,7 @@ impl Pub {
 
 impl PubTable {
     pub fn get_tables(conn: &mut DbConnection, pub_id: Uuid) -> Result<Vec<TableWithPeople>> {
-        Ok(conn.query(&format!("SELECT pub_table.*, ARRAY_REMOVE(ARRAY_AGG(person.id), NULL) AS persons FROM pub_table LEFT JOIN person ON person.table_id = pub_table.id WHERE pub_table.pub_id = $1 and {} GROUP BY pub_table.id", PERSON_UP_TO_DATE), &[&pub_id])?
+        Ok(conn.query(&format!("SELECT pub_table.*, ARRAY_REMOVE(ARRAY_AGG(person.id), NULL) AS persons FROM pub_table LEFT JOIN person ON person.table_id = pub_table.id and {} WHERE pub_table.pub_id = $1 GROUP BY pub_table.id", PERSON_UP_TO_DATE), &[&pub_id])?
         .iter()
         .map(|row| TableWithPeople {
             id: row.get("id"),

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { listPubs, listTables } from "./commands";
 import { useUIStore } from "./Store";
+import { useWebsocket } from "./Websocket";
 
 function Clock() {
   const [date, setDate] = useState(new Date());
@@ -22,15 +24,35 @@ function Core() {
   const location = useLocation();
   const navigate = useNavigate();
   const me = useUIStore((s) => s.me());
+  const websocket = useWebsocket();
+  const currentPubId = useUIStore((s) => {
+    const me = s.me();
+    return me && me.pub_id;
+  });
   useEffect(() => {
-    if (me === null) {
-      return;
+    if (websocket !== null) {
+      listPubs(websocket);
+      if (currentPubId !== null) {
+        listTables(websocket, currentPubId);
+      }
     }
-    if (me.pub_id === null && location.pathname !== "/Home") {
-      navigate("/Home");
-    }
-    if (me.pub_id !== null && location.pathname !== "/Pub") {
-      navigate("/Pub");
+  }, [websocket, currentPubId]);
+  useEffect(() => {
+    console.log("pathname", location.pathname);
+    if (me === null || me.pub_id === null) {
+      if (location.pathname !== "/Home") {
+        navigate("/Home");
+      }
+    } else if (me !== null && me.pub_id !== null) {
+      if (me.table_id !== null) {
+        if (location.pathname !== "/Table") {
+          console.log("/Table");
+          navigate("/Table");
+        }
+      } else if (location.pathname !== "/Pub") {
+        console.log("/Pub");
+        navigate("/Pub");
+      }
     }
   }, [me, location]);
   return (
