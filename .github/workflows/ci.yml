@@ -25,7 +25,7 @@ jobs:
     - name: Clippy
       env:
         RUSTFLAGS: -Dwarnings
-      run: cargo clippy
+      run: cd backend && cargo clippy
     - name: Build
       run: cd backend && cargo build
     - name: Test
