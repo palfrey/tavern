@@ -77,9 +77,9 @@ pub enum Command {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "kind")]
 pub enum Response {
-    Pub { data: Pub },
+    CreatePub { data: PubWithPeople },
     Pubs { list: Vec<PubWithPeople> },
-    Table { data: PubTable },
+    CreateTable { data: TableWithPeople },
     Tables { list: Vec<TableWithPeople> },
     Person { data: Person },
     Data { author: Uuid, content: String },

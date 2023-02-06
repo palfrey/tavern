@@ -86,7 +86,7 @@ impl Person {
 
 impl Pub {
     pub fn get_pubs(conn: &mut DbConnection) -> Result<Vec<PubWithPeople>> {
-        Ok(conn.query(&format!("SELECT public_house.*, ARRAY_REMOVE(ARRAY_AGG(person.id), NULL) AS persons FROM public_house LEFT JOIN person ON person.pub_id = public_house.id WHERE {} GROUP BY public_house.id", PERSON_UP_TO_DATE), &[])?
+        Ok(conn.query(&format!("SELECT public_house.*, ARRAY_REMOVE(ARRAY_AGG(person.id), NULL) AS persons FROM public_house LEFT JOIN person ON person.pub_id = public_house.id AND {} GROUP BY public_house.id", PERSON_UP_TO_DATE), &[])?
         .iter()
         .map(|row| PubWithPeople {
             id: row.get("id"),
@@ -103,7 +103,13 @@ impl Pub {
     }
 
     pub fn delete_pub(conn: &mut DbConnection, pub_id: Uuid) -> Result<()> {
-        let patrons = conn.query("SELECT id FROM person WHERE person.pub_id = $1", &[&pub_id])?;
+        let patrons = conn.query(
+            &format!(
+                "SELECT id FROM person WHERE person.pub_id = $1 AND {}",
+                PERSON_UP_TO_DATE
+            ),
+            &[&pub_id],
+        )?;
         if patrons.is_empty() {
             map_empty(conn.execute("DELETE FROM public_house WHERE id = $1", &[&pub_id]))
         } else {
@@ -114,7 +120,7 @@ impl Pub {
 
 impl PubTable {
     pub fn get_tables(conn: &mut DbConnection, pub_id: Uuid) -> Result<Vec<TableWithPeople>> {
-        Ok(conn.query(&format!("SELECT pub_table.*, ARRAY_REMOVE(ARRAY_AGG(person.id), NULL) AS persons FROM pub_table LEFT JOIN person ON person.table_id = pub_table.id WHERE pub_table.pub_id = $1 and {} GROUP BY pub_table.id", PERSON_UP_TO_DATE), &[&pub_id])?
+        Ok(conn.query(&format!("SELECT pub_table.*, ARRAY_REMOVE(ARRAY_AGG(person.id), NULL) AS persons FROM pub_table LEFT JOIN person ON person.table_id = pub_table.id and {} WHERE pub_table.pub_id = $1 GROUP BY pub_table.id", PERSON_UP_TO_DATE), &[&pub_id])?
         .iter()
         .map(|row| TableWithPeople {
             id: row.get("id"),

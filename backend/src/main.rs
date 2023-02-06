@@ -9,6 +9,7 @@ use crate::types::{Client, Person};
 use actix_files::NamedFile;
 use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer};
 use actix_web_actors::ws;
+use anyhow::Context;
 use std::{env, io, path::PathBuf};
 use uuid::Uuid;
 
@@ -42,7 +43,7 @@ async fn index(req: HttpRequest) -> Result<NamedFile> {
         other => other,
     };
     path.push(filename);
-    Ok(NamedFile::open(path)?)
+    Ok(NamedFile::open(&path).context(format!("Opening {:?}", &path))?)
 }
 
 fn main() -> io::Result<()> {
