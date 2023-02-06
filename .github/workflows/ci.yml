@@ -37,17 +37,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - run: ls /home/runner/.local
-    - run: mkdir /home/runner/.local/bin
-    - run: cp frontend/pnpm ~/.local/bin
-    - run: ls /home/runner/.local/bin
-    - run: which pnpm
+    - name: Install pnpm script
+      run: |
+        mkdir /home/runner/.local/bin
+        cp frontend/pnpm ~/.local/bin
     - uses: actions/setup-node@v3
       with:
         node-version: 14
         cache: pnpm
         cache-dependency-path: frontend/pnpm-lock.yaml
     - name: Install packages
-      run: cd frontend && ./pnpm install
+      run: cd frontend && pnpm install
     - name: Compile
-      run: cd frontend && ./pnpm run build
+      run: cd frontend && pnpm run build
