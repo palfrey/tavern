@@ -8,8 +8,8 @@ use uuid::Uuid;
 pub fn make_pool() -> Pool {
     let db_url = env::var("DATABASE_URL").expect("Database url not set");
     let manager = PostgresConnectionManager::new(db_url, TlsMode::None).unwrap();
-    let pool = Pool::new(manager).expect("Failed to create db pool");
-    pool
+
+    Pool::new(manager).expect("Failed to create db pool")
 }
 
 fn map_empty<T, E>(res: StdResult<T, E>) -> Result<()>
@@ -19,7 +19,7 @@ where
     res.map(|_| ()).map_err(|e| e.into())
 }
 
-const PERSON_UP_TO_DATE: &'static str = " person.last_updated > (NOW() - interval '5 minutes')";
+const PERSON_UP_TO_DATE: &str = " person.last_updated > (NOW() - interval '5 minutes')";
 
 impl Person {
     pub fn leave_pub(conn: &mut DbConnection, person_id: Uuid) -> Result<()> {
@@ -86,7 +86,7 @@ impl Person {
 
 impl Pub {
     pub fn get_pubs(conn: &mut DbConnection) -> Result<Vec<PubWithPeople>> {
-        Ok(conn.query(&format!("SELECT public_house.*, ARRAY_REMOVE(ARRAY_AGG(person.id), NULL) AS persons FROM public_house LEFT JOIN person ON person.pub_id = public_house.id AND {} GROUP BY public_house.id", PERSON_UP_TO_DATE), &[])?
+        Ok(conn.query(&format!("SELECT public_house.*, ARRAY_REMOVE(ARRAY_AGG(person.id), NULL) AS persons FROM public_house LEFT JOIN person ON person.pub_id = public_house.id AND {PERSON_UP_TO_DATE} GROUP BY public_house.id"), &[])?
         .iter()
         .map(|row| PubWithPeople {
             id: row.get("id"),
@@ -104,10 +104,7 @@ impl Pub {
 
     pub fn delete_pub(conn: &mut DbConnection, pub_id: Uuid) -> Result<()> {
         let patrons = conn.query(
-            &format!(
-                "SELECT id FROM person WHERE person.pub_id = $1 AND {}",
-                PERSON_UP_TO_DATE
-            ),
+            &format!("SELECT id FROM person WHERE person.pub_id = $1 AND {PERSON_UP_TO_DATE}"),
             &[&pub_id],
         )?;
         if patrons.is_empty() {
@@ -120,7 +117,7 @@ impl Pub {
 
 impl PubTable {
     pub fn get_tables(conn: &mut DbConnection, pub_id: Uuid) -> Result<Vec<TableWithPeople>> {
-        Ok(conn.query(&format!("SELECT pub_table.*, ARRAY_REMOVE(ARRAY_AGG(person.id), NULL) AS persons FROM pub_table LEFT JOIN person ON person.table_id = pub_table.id and {} WHERE pub_table.pub_id = $1 GROUP BY pub_table.id", PERSON_UP_TO_DATE), &[&pub_id])?
+        Ok(conn.query(&format!("SELECT pub_table.*, ARRAY_REMOVE(ARRAY_AGG(person.id), NULL) AS persons FROM pub_table LEFT JOIN person ON person.table_id = pub_table.id and {PERSON_UP_TO_DATE} WHERE pub_table.pub_id = $1 GROUP BY pub_table.id"), &[&pub_id])?
         .iter()
         .map(|row| TableWithPeople {
             id: row.get("id"),

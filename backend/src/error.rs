@@ -33,7 +33,7 @@ pub enum MyError {
 }
 impl fmt::Display for MyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 impl actix_web::error::ResponseError for MyError {}
