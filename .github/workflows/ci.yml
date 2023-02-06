@@ -38,7 +38,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - run: ls /home/runner/.local
-    - run: ls /home/runner/.local/bin
+    - run: mkdir /home/runner/.local/bin
     - run: cp frontend/pnpm ~/.local/bin
     - run: ls /home/runner/.local/bin
     - run: which pnpm
