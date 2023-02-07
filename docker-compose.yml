@@ -13,6 +13,7 @@ services:
     - DATABASE_URL=postgresql://postgres:mysecretpassword@postgres:5432/postgres
     - FRONTEND=/frontend
     - RUST_BACKTRACE=1
+    - RUST_LOG=info
     volumes:
     - ./backend:/work:cached
     - ./frontend:/frontend:cached

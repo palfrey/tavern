@@ -10,6 +10,10 @@ use actix_files::NamedFile;
 use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer};
 use actix_web_actors::ws;
 use anyhow::Context;
+use log::info;
+use std::sync::{Arc, Condvar, Mutex};
+use std::thread;
+use std::time::Duration;
 use std::{env, io, path::PathBuf};
 use uuid::Uuid;
 
@@ -30,7 +34,7 @@ async fn websocket(
         &req,
         stream,
     );
-    println!("Resp: {resp:?}");
+    info!("Resp: {resp:?}");
     resp.map_err(|e| MyError::Actix {
         content: e.to_string(),
     })
@@ -47,8 +51,27 @@ async fn index(req: HttpRequest) -> Result<NamedFile> {
 }
 
 fn main() -> io::Result<()> {
+    env_logger::init();
     let pool = db::make_pool();
     migrations::run_migrations(&mut pool.get().unwrap());
+
+    let pair = Arc::new((Mutex::new(false), Condvar::new()));
+    let thread_pair = Arc::clone(&pair);
+
+    let thread_pool = pool.clone();
+    thread::spawn(move || {
+        let (lock, cvar) = &*thread_pair;
+        let mut conn = thread_pool.get().unwrap();
+        loop {
+            Person::cleanup_outdated(&mut conn).unwrap();
+            info!("Cleanup done");
+            let started = lock.lock().unwrap();
+            let result = cvar.wait_timeout(started, Duration::from_secs(60)).unwrap();
+            if !result.1.timed_out() {
+                break;
+            }
+        }
+    });
 
     actix::run(async {
         HttpServer::new(move || {
@@ -63,5 +86,6 @@ fn main() -> io::Result<()> {
         .await
         .unwrap()
     })?;
+    pair.1.notify_one();
     Ok(())
 }
