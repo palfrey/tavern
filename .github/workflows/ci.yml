@@ -10,7 +10,7 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2.3.4
+    - uses: actions/checkout@v3
     - uses: actions-rs/toolchain@v1.0.7
       with:
         profile: minimal
@@ -22,12 +22,10 @@ jobs:
         cache-directories: backend
     - name: Check formatting
       run: cd backend && cargo fmt -- --check
-      # - name: Clippy
-      #   uses: actions-rs/cargo@v1.0.3
-      #   env:
-      #     RUSTFLAGS: -Dwarnings
-      #   with:
-      #     command: clippy
+    - name: Clippy
+      env:
+        RUSTFLAGS: -Dwarnings
+      run: cd backend && cargo clippy
     - name: Build
       run: cd backend && cargo build
     - name: Test

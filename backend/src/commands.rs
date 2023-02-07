@@ -83,12 +83,12 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
         let mut conn = self.pool.get().unwrap();
         match msg {
             Ok(ws::Message::Ping(msg)) => {
-                println!("msg: {:?}", msg);
+                println!("msg: {msg:?}");
             }
             Ok(ws::Message::Text(text)) => {
                 match serde_json::from_str::<Command>(&text) {
                     Ok(cmd) => {
-                        println!("command: {:?}", cmd);
+                        println!("command: {cmd:?}");
                         match cmd {
                             Command::ListPubs => {
                                 ctx.text(
@@ -218,15 +218,14 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                         }
                     }
                     Err(_error) => {
-                        println!("Error parsing command: {}", text);
-                        return;
+                        println!("Error parsing command: {text}");
                     }
-                };
+                }
             }
             Ok(ws::Message::Binary(bin)) => {
-                println!("bin: {:?}", bin);
+                println!("bin: {bin:?}");
             }
-            other => println!("Something else: {:?}", other),
+            other => println!("Something else: {other:?}"),
         }
     }
 }

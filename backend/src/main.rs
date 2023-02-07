@@ -30,7 +30,7 @@ async fn websocket(
         &req,
         stream,
     );
-    println!("Resp: {:?}", resp);
+    println!("Resp: {resp:?}");
     resp.map_err(|e| MyError::Actix {
         content: e.to_string(),
     })
