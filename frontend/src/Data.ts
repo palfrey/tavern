@@ -9,11 +9,11 @@ export interface Person {
 export interface Pub {
   id: string;
   name: string;
-  persons: Person[];
+  persons: string[];
 }
 
 export interface Table {
   id: string;
   name: string;
-  persons: Person[];
+  persons: string[];
 }

@@ -37,11 +37,11 @@ function VideoComponent({
   const update = () => {
     const element = document.getElementById(name);
     if (element === null) {
-      console.log("Element is null!");
+      console.warn(`Element is null for ${name}!`);
       return;
     }
     if (!(element instanceof HTMLVideoElement)) {
-      console.log("Element is not a video!", element);
+      console.warn(`Element is not a video for ${name}!`, element);
       return;
     }
 
@@ -112,7 +112,7 @@ function getStreams() {
   const peerId = useUIStore((s) => s.peerId);
   const mediaStream = useUIStore((s) => s.mediaStream);
   const peers = useUIStore((s) =>
-    s.currentTable()!.persons.filter((p) => p.id != peerId)
+    s.currentTable()!.persons.filter((p) => p != peerId)
   );
   if (mediaStream === null) {
     return [];
@@ -129,8 +129,8 @@ function getStreams() {
   ret.push(
     ...peers.map((peer) => (
       <VideoComponent
-        key={peer.id}
-        name={peer.id}
+        key={peer}
+        name={peer}
         type="remote"
         stream={mediaStream}
       />
