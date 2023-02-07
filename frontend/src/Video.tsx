@@ -112,7 +112,7 @@ function getStreams() {
   const peerId = useUIStore((s) => s.peerId);
   const mediaStream = useUIStore((s) => s.mediaStream);
   const peers = useUIStore((s) =>
-    s.currentTable()!.persons.filter((p) => p != peerId)
+    (s.currentTable()?.persons ?? []).filter((p) => p != peerId)
   );
   if (mediaStream === null) {
     return [];
