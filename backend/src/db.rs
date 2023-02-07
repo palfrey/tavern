@@ -134,7 +134,7 @@ impl PubTable {
         ))
     }
 
-    pub fn delete_table(conn: &mut DbConnection, table_id: Uuid) -> Result<Option<Uuid>> {
+    pub fn delete_table(conn: &mut DbConnection, table_id: Uuid) -> Result<Uuid> {
         let patrons = conn.query(
             "SELECT id FROM person WHERE person.table_id = $1",
             &[&table_id],
@@ -144,9 +144,10 @@ impl PubTable {
                 "DELETE FROM pub_table WHERE id = $1 RETURNING pub_id",
                 &[&table_id],
             )?;
-            Ok(Some(pubs.get(0).get("pub_id")))
+            Ok(pubs.get(0).get("pub_id"))
         } else {
-            Ok(None)
+            let pubs = conn.query("SELECT pub_id FROM pub_table WHERE id = $1", &[&table_id])?;
+            Ok(pubs.get(0).get("pub_id"))
         }
     }
 }

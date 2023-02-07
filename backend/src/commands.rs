@@ -206,9 +206,7 @@ impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
                                 );
                             }
                             Command::DeleteTable { table_id } => {
-                                let pub_id = PubTable::delete_table(&mut conn, table_id)
-                                    .unwrap()
-                                    .unwrap();
+                                let pub_id = PubTable::delete_table(&mut conn, table_id).unwrap();
                                 send_tables(ctx, &mut conn, pub_id);
                             }
                             Command::Ping => {
