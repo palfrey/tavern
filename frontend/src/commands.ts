@@ -1,3 +1,5 @@
+import { WebSocketHook } from "react-use-websocket/dist/lib/types";
+
 interface ListPubsCommand {
   kind: "ListPubs";
 }
@@ -71,78 +73,68 @@ type Command =
   | SendCommand
   | PingCommand;
 
-export const sendCommand = (websocket: WebSocket | null, msg: Command) => {
+export const sendCommand = (websocket: WebSocketHook, msg: Command) => {
   const data = JSON.stringify(msg);
-  if (websocket === null) {
-    console.log("Attempt to send when null", data);
-    return;
-  }
-  const state = websocket.readyState;
-  if (state == 1) {
-    console.log("Sending", data);
-    websocket.send(data);
-  } else {
-    console.log("Attempt to send when not open", state, data);
-    // create-ws
-  }
+  console.log("Sending", data);
+  websocket.sendMessage(data);
 };
 
-export function listPubs(websocket: WebSocket | null): void {
+export function listPubs(websocket: WebSocketHook): void {
   sendCommand(websocket, { kind: "ListPubs" });
 }
 
-export function createPub(websocket: WebSocket | null, name: string) {
+export function createPub(websocket: WebSocketHook, name: string) {
   sendCommand(websocket, { kind: "CreatePub", name: name });
 }
 
-export function deletePub(websocket: WebSocket | null, pubId: string) {
+export function deletePub(websocket: WebSocketHook, pubId: string) {
   sendCommand(websocket, { kind: "DeletePub", pub_id: pubId });
 }
 
-export function joinPub(websocket: WebSocket | null, pubId: string) {
+export function joinPub(websocket: WebSocketHook, pubId: string) {
   sendCommand(websocket, { kind: "JoinPub", pub_id: pubId });
 }
 
-export function leavePub(websocket: WebSocket | null, pubId: string) {
+export function leavePub(websocket: WebSocketHook, pubId: string) {
   sendCommand(websocket, { kind: "LeavePub", pub_id: pubId });
 }
 
-export function listTables(websocket: WebSocket | null, pubId: string) {
+export function listTables(websocket: WebSocketHook, pubId: string) {
   sendCommand(websocket, { kind: "ListTables", pub_id: pubId });
 }
 
 export function createTable(
-  websocket: WebSocket | null,
+  websocket: WebSocketHook,
   pubId: string,
   name: string
 ) {
   sendCommand(websocket, { kind: "CreateTable", pub_id: pubId, name });
 }
 
-export function joinTable(websocket: WebSocket | null, tableId: string) {
+export function joinTable(websocket: WebSocketHook, tableId: string) {
   sendCommand(websocket, { kind: "JoinTable", table_id: tableId });
 }
 
-export function leaveTable(websocket: WebSocket | null, tableId: string) {
+export function leaveTable(websocket: WebSocketHook, tableId: string) {
   sendCommand(websocket, { kind: "LeaveTable", table_id: tableId });
 }
 
-export function deleteTable(websocket: WebSocket | null, tableId: string) {
+export function deleteTable(websocket: WebSocketHook, tableId: string) {
   sendCommand(websocket, { kind: "DeleteTable", table_id: tableId });
 }
 
-export function getPerson(websocket: WebSocket | null, userId: string) {
+export function getPerson(websocket: WebSocketHook, userId: string) {
   sendCommand(websocket, { kind: "GetPerson", user_id: userId });
 }
 
 export function send(
-  websocket: WebSocket | null,
+  websocket: WebSocketHook,
   userId: string,
   content: string
 ) {
   sendCommand(websocket, { kind: "Send", user_id: userId, content });
 }
 
-export function ping(websocket: WebSocket | null) {
+export function ping(websocket: WebSocketHook) {
   sendCommand(websocket, { kind: "Ping" });
 }

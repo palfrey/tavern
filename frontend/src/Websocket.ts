@@ -1,52 +1,37 @@
-import { useEffect, useState } from "react";
-import { singletonHook } from "react-singleton-hook";
 import { doMessage, SocketMessage } from "./messages";
 import { useUIStore } from "./Store";
+import { default as reactUseWebsocket } from "react-use-websocket";
+import { listPubs, listTables } from "./commands";
 
-const useWebsocketImpl = () => {
-  const [websocket, setWebsocket] = useState<WebSocket | null>(null);
-  const [settingUp, setSettingUp] = useState(false);
+export const useWebsocket = () => {
   const peerId = useUIStore((state) => state.peerId);
-
-  useEffect(() => {
-    if (websocket === null && !settingUp) {
-      const path = `wss://${window.location.hostname}:${window.location.port}/ws/${peerId}`;
-      console.log("ws path", path);
-      const client = new WebSocket(path);
-      client.onmessage = (message) => {
-        console.debug("Websocket message", message.data);
-        const decoded: SocketMessage = JSON.parse(message.data as string);
-        doMessage(client, decoded);
-      };
-      client.onopen = () => {
-        console.debug("websocket connected");
-        setWebsocket(client);
-      };
-      client.onerror = (error) => {
-        console.debug("Websocket error", JSON.stringify(error));
-        if (websocket === null) {
-          setSettingUp(false);
-        }
-      };
-      client.onclose = (event) => {
-        console.debug("Websocket closed", event);
-        setWebsocket(null);
-        setSettingUp(false);
-      };
-      setSettingUp(true);
-      return () => {
-        if (websocket != null) {
-          console.log("Closing websocket");
-          client.onopen = null;
-          client.onclose = null;
-          client.close();
-          setWebsocket(null);
-        }
-      };
-    }
-  }, [websocket, settingUp]);
+  const path = `wss://${window.location.hostname}:${window.location.port}/ws/${peerId}`;
+  const currentPubId = useUIStore((s) => {
+    const me = s.me();
+    return me && me.pub_id;
+  });
+  const websocket = reactUseWebsocket(path, {
+    share: true,
+    onOpen: () => {
+      console.debug("websocket connected");
+      listPubs(websocket);
+      if (currentPubId !== null) {
+        listTables(websocket, currentPubId);
+      }
+    },
+    filter: () => false, // To fix re-render with last message https://github.com/robtaussig/react-use-websocket/issues/93#issuecomment-876702088
+    onMessage: (message) => {
+      console.debug("Websocket message", message.data);
+      const decoded: SocketMessage = JSON.parse(message.data as string);
+      doMessage(websocket, decoded);
+    },
+    onError: (error) => {
+      console.debug("Websocket error", JSON.stringify(error));
+    },
+    onClose: (event) => {
+      console.debug("Websocket closed", event);
+    },
+  });
 
   return websocket;
 };
-
-export const useWebsocket = singletonHook(null, useWebsocketImpl);

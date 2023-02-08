@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { listPubs, listTables } from "./commands";
 import { useUIStore } from "./Store";
-import { useWebsocket } from "./Websocket";
 
 function Clock() {
   const [date, setDate] = useState(new Date());
@@ -24,19 +22,6 @@ function Core() {
   const location = useLocation();
   const navigate = useNavigate();
   const me = useUIStore((s) => s.me());
-  const websocket = useWebsocket();
-  const currentPubId = useUIStore((s) => {
-    const me = s.me();
-    return me && me.pub_id;
-  });
-  useEffect(() => {
-    if (websocket !== null) {
-      listPubs(websocket);
-      if (currentPubId !== null) {
-        listTables(websocket, currentPubId);
-      }
-    }
-  }, [websocket, currentPubId]);
   useEffect(() => {
     console.log("pathname", location.pathname);
     if (me === null || me.pub_id === null) {
