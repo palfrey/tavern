@@ -1,14 +1,14 @@
 use crate::error::{MyError, Result};
 use crate::types::{DbConnection, Person, Pool, Pub, PubTable, PubWithPeople, TableWithPeople};
 use log::warn;
-use r2d2_postgres::{PostgresConnectionManager, TlsMode};
+use r2d2_postgres::{postgres::NoTls, PostgresConnectionManager};
 use std::env;
 use std::result::Result as StdResult;
 use uuid::Uuid;
 
 pub fn make_pool() -> Pool {
     let db_url = env::var("DATABASE_URL").expect("Database url not set");
-    let manager = PostgresConnectionManager::new(db_url, TlsMode::None).unwrap();
+    let manager = PostgresConnectionManager::new(db_url.parse().unwrap(), NoTls);
 
     Pool::new(manager).expect("Failed to create db pool")
 }
@@ -37,7 +37,7 @@ impl Person {
 
     pub fn load_from_db(conn: &mut DbConnection, person_id: Uuid) -> Result<Person> {
         let rows = conn.query("SELECT * FROM person WHERE person.id = $1", &[&person_id])?;
-        let row = rows.get(0);
+        let row = rows.get(0).unwrap();
         Ok(Person {
             id: row.get("id"),
             name: row.get("name"),
@@ -147,14 +147,14 @@ impl PubTable {
                 "DELETE FROM pub_table WHERE id = $1 RETURNING pub_id",
                 &[&table_id],
             )?;
-            Ok(pubs.get(0).get("pub_id"))
+            Ok(pubs.get(0).unwrap().get("pub_id"))
         } else {
             warn!(
                 "Not deleting {table_id} because there's still {} in it",
                 patrons.len()
             );
             let pubs = conn.query("SELECT pub_id FROM pub_table WHERE id = $1", &[&table_id])?;
-            Ok(pubs.get(0).get("pub_id"))
+            Ok(pubs.get(0).unwrap().get("pub_id"))
         }
     }
 }

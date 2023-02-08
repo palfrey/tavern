@@ -15,7 +15,7 @@ pub enum MyError {
     },
     Uuid {
         #[from]
-        source: uuid::ParseError,
+        source: uuid::Error,
     },
     Actix {
         content: String,
