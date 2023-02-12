@@ -1,0 +1,10 @@
+[sqlfluff]
+dialect = postgres
+
+[sqlfluff:rules:L010]
+# Keywords
+capitalisation_policy = upper
+
+[sqlfluff:rules:L063]
+# Types
+extended_capitalisation_policy = upper

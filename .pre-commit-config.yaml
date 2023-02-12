@@ -39,3 +39,9 @@ repos:
   hooks:
   - id: prettier
     types_or: [css, ts, tsx, javascript]
+
+- repo: https://github.com/sqlfluff/sqlfluff
+  rev: 1.4.5
+  hooks:
+  - id: sqlfluff-fix
+  - id: sqlfluff-lint

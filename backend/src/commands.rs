@@ -2,228 +2,248 @@ use crate::error::Result;
 use crate::types::{
     Client, Command, DbConnection, Person, Pub, PubTable, PubWithPeople, Response, TableWithPeople,
 };
-use actix::prelude::AsyncContext;
-use actix::{Actor, Addr, Handler, Message, StreamHandler};
-use actix_web_actors::ws;
+use futures_util::{SinkExt, StreamExt, TryFutureExt};
 use lazy_static::lazy_static;
+use log::{debug, info, warn};
 use parking_lot::RwLock;
 use std::collections::HashMap;
-use std::result::Result as StdResult;
+use tokio::sync::mpsc::{self, UnboundedSender};
+use tokio_stream::wrappers::UnboundedReceiverStream;
 use uuid::Uuid;
+use warp::ws::{Message, WebSocket};
 
 lazy_static! {
-    static ref ADDRS: RwLock<HashMap<Uuid, Addr<Client>>> = RwLock::new(HashMap::new());
-}
-
-impl Actor for Client {
-    type Context = ws::WebsocketContext<Self>;
-
-    fn started(&mut self, ctx: &mut Self::Context) {
-        ADDRS.write().insert(self.id, ctx.address());
-    }
+    static ref ADDRS: RwLock<HashMap<Uuid, UnboundedSender<Message>>> = RwLock::new(HashMap::new());
 }
 
 impl Client {
-    fn leave_pub(&mut self, conn: &mut DbConnection) -> Result<()> {
-        Person::leave_pub(conn, self.id)
-    }
+    pub async fn run_user(&self, ws: WebSocket) {
+        let (mut user_ws_tx, mut user_ws_rx) = ws.split();
 
-    fn leave_table(&mut self, conn: &mut DbConnection) -> Result<()> {
-        Person::leave_table(conn, self.id)
-    }
+        // Use an unbounded channel to handle buffering and flushing of messages
+        // to the websocket...
+        let (tx, rx) = mpsc::unbounded_channel();
+        let mut rx = UnboundedReceiverStream::new(rx);
 
-    fn return_self(&self, ctx: &mut <Client as Actor>::Context, conn: &mut DbConnection)
-    where
-        Self: Actor,
-    {
-        ctx.text(
-            serde_json::to_string(&Response::Person {
-                data: Person::load_from_db(conn, self.id).unwrap(),
-            })
-            .unwrap(),
-        );
-    }
-}
-
-struct ClientMsg {
-    author: Uuid,
-    payload: String,
-}
-
-impl Message for ClientMsg {
-    type Result = Result<()>;
-}
-
-impl Handler<ClientMsg> for Client {
-    type Result = Result<()>;
-
-    fn handle(&mut self, msg: ClientMsg, ctx: &mut Self::Context) -> Self::Result {
-        ctx.text(
-            serde_json::to_string(&Response::Data {
-                author: msg.author,
-                content: msg.payload,
-            })
-            .unwrap(),
-        );
-        Ok(())
-    }
-}
-
-fn send_tables(ctx: &mut ws::WebsocketContext<Client>, conn: &mut DbConnection, pub_id: Uuid) {
-    ctx.text(
-        serde_json::to_string(&Response::Tables {
-            list: PubTable::get_tables(conn, pub_id).unwrap(),
-        })
-        .unwrap(),
-    );
-}
-
-impl StreamHandler<StdResult<ws::Message, ws::ProtocolError>> for Client {
-    fn handle(&mut self, msg: StdResult<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
-        let mut conn = self.pool.get().unwrap();
-        match msg {
-            Ok(ws::Message::Ping(msg)) => {
-                println!("msg: {msg:?}");
+        tokio::task::spawn(async move {
+            while let Some(message) = rx.next().await {
+                user_ws_tx
+                    .send(message)
+                    .unwrap_or_else(|e| {
+                        warn!("websocket send error: {}", e);
+                    })
+                    .await;
             }
-            Ok(ws::Message::Text(text)) => {
-                match serde_json::from_str::<Command>(&text) {
-                    Ok(cmd) => {
-                        println!("command: {cmd:?}");
-                        match cmd {
-                            Command::ListPubs => {
-                                ctx.text(
-                                    serde_json::to_string(&Response::Pubs {
-                                        list: Pub::get_pubs(&mut conn).unwrap(),
-                                    })
-                                    .unwrap(),
-                                );
+        });
+
+        ADDRS.write().insert(self.id, tx);
+
+        while let Some(result) = user_ws_rx.next().await {
+            let msg = match result {
+                Ok(msg) => msg,
+                Err(e) => {
+                    warn!("websocket error(uid={}): {}", self.id, e);
+                    break;
+                }
+            };
+            self.handle_msg(msg).await;
+        }
+
+        info!("Disconnected: {}", self.id);
+
+        // user_ws_rx stream will keep processing as long as the user stays
+        // connected. Once they disconnect, then...
+        // user_disconnected(my_id, &users).await;
+    }
+
+    async fn send_text<S: Into<String> + std::fmt::Display>(&self, msg: S) {
+        ADDRS.read().get(&self.id).and_then(|tx| {
+            debug!("send_text: {}", msg);
+            tx.send(Message::text(msg)).unwrap();
+            Some(())
+        });
+    }
+
+    async fn leave_pub<'a>(&self, conn: &mut DbConnection<'a>) -> Result<()> {
+        Person::leave_pub(conn, self.id).await
+    }
+
+    async fn leave_table<'a>(&self, conn: &mut DbConnection<'a>) -> Result<()> {
+        Person::leave_table(conn, self.id).await
+    }
+
+    async fn return_self<'a>(&self, conn: &mut DbConnection<'a>) {
+        self.send_text(
+            serde_json::to_string(&Response::Person {
+                data: Person::load_from_db(conn, self.id).await.unwrap(),
+            })
+            .unwrap(),
+        )
+        .await;
+    }
+
+    async fn send_tables<'a>(&self, conn: &mut DbConnection<'a>, pub_id: Uuid) {
+        self.send_text(
+            serde_json::to_string(&Response::Tables {
+                list: PubTable::get_tables(conn, pub_id).await.unwrap(),
+            })
+            .unwrap(),
+        )
+        .await;
+    }
+
+    async fn handle_msg(&self, msg: Message) {
+        if msg.is_ping() {
+            println!("msg: {msg:?}");
+        } else if msg.is_text() {
+            let text = msg.to_str().unwrap();
+            match serde_json::from_str::<Command>(&text) {
+                Ok(cmd) => {
+                    println!("command: {cmd:?}");
+                    let mut conn = self.pool.get().await.unwrap();
+                    match cmd {
+                        Command::ListPubs => {
+                            let pubs = serde_json::to_string(&Response::Pubs {
+                                list: Pub::get_pubs(&mut conn).await.unwrap(),
+                            })
+                            .unwrap();
+                            self.send_text(pubs).await;
+                        }
+                        Command::CreatePub { name } => {
+                            self.leave_table(&mut conn).await.unwrap();
+                            self.leave_pub(&mut conn).await.unwrap();
+                            let pub_id = Uuid::new_v4();
+                            let new_pub = Pub {
+                                id: pub_id,
+                                name: name.clone(),
+                            };
+                            new_pub.add_pub(&mut conn).await.unwrap();
+                            Person::set_pub(&mut conn, self.id, pub_id).await.unwrap();
+                            self.send_text(
+                                serde_json::to_string(&Response::CreatePub {
+                                    data: PubWithPeople {
+                                        id: pub_id,
+                                        name,
+                                        persons: vec![self.id],
+                                    },
+                                })
+                                .unwrap(),
+                            )
+                            .await;
+                            self.return_self(&mut conn).await;
+                        }
+                        Command::DeletePub { pub_id } => {
+                            Pub::delete_pub(&mut conn, pub_id).await.unwrap();
+                            let pubs = serde_json::to_string(&Response::Pubs {
+                                list: Pub::get_pubs(&mut conn).await.unwrap(),
+                            })
+                            .unwrap();
+                            self.send_text(pubs).await;
+                        }
+                        Command::JoinPub { pub_id } => {
+                            // Only allowed to be in one pub
+                            self.leave_table(&mut conn).await.unwrap();
+                            self.leave_pub(&mut conn).await.unwrap();
+                            Person::set_pub(&mut conn, self.id, pub_id).await.unwrap();
+                            self.return_self(&mut conn).await;
+                            self.send_tables(&mut conn, pub_id).await;
+                        }
+                        Command::CreateTable { pub_id, name } => {
+                            self.leave_table(&mut conn).await.unwrap();
+                            let table_id = Uuid::new_v4();
+                            let new_table = PubTable {
+                                id: table_id,
+                                pub_id,
+                                name: name.clone(),
+                            };
+                            new_table.add_table(&mut conn).await.unwrap();
+                            Person::set_table(&mut conn, self.id, table_id)
+                                .await
+                                .unwrap();
+                            self.send_text(
+                                serde_json::to_string(&Response::CreateTable {
+                                    data: TableWithPeople {
+                                        id: table_id,
+                                        pub_id,
+                                        name,
+                                        persons: vec![self.id],
+                                    },
+                                })
+                                .unwrap(),
+                            )
+                            .await;
+                            self.return_self(&mut conn).await;
+                        }
+                        Command::JoinTable { table_id } => {
+                            // Only allowed to be in one pub
+                            self.leave_table(&mut conn).await.unwrap();
+                            Person::set_table(&mut conn, self.id, table_id)
+                                .await
+                                .unwrap();
+
+                            self.return_self(&mut conn).await;
+                        }
+                        Command::LeavePub | Command::LeaveTable => {
+                            self.leave_table(&mut conn).await.unwrap();
+                            if cmd == Command::LeavePub {
+                                self.leave_pub(&mut conn).await.unwrap();
                             }
-                            Command::CreatePub { name } => {
-                                self.leave_table(&mut conn).unwrap();
-                                self.leave_pub(&mut conn).unwrap();
-                                let pub_id = Uuid::new_v4();
-                                let new_pub = Pub {
-                                    id: pub_id,
-                                    name: name.clone(),
-                                };
-                                new_pub.add_pub(&mut conn).unwrap();
-                                Person::set_pub(&mut conn, self.id, pub_id).unwrap();
-                                ctx.text(
-                                    serde_json::to_string(&Response::CreatePub {
-                                        data: PubWithPeople {
-                                            id: pub_id,
-                                            name,
-                                            persons: vec![self.id],
-                                        },
-                                    })
-                                    .unwrap(),
-                                );
-                                self.return_self(ctx, &mut conn);
-                            }
-                            Command::DeletePub { pub_id } => {
-                                Pub::delete_pub(&mut conn, pub_id).unwrap();
-                                ctx.text(
-                                    serde_json::to_string(&Response::Pubs {
-                                        list: Pub::get_pubs(&mut conn).unwrap(),
-                                    })
-                                    .unwrap(),
-                                );
-                            }
-                            Command::JoinPub { pub_id } => {
-                                // Only allowed to be in one pub
-                                self.leave_table(&mut conn).unwrap();
-                                self.leave_pub(&mut conn).unwrap();
-                                Person::set_pub(&mut conn, self.id, pub_id).unwrap();
-                                self.return_self(ctx, &mut conn);
-                                send_tables(ctx, &mut conn, pub_id);
-                            }
-                            Command::CreateTable { pub_id, name } => {
-                                self.leave_table(&mut conn).unwrap();
-                                let table_id = Uuid::new_v4();
-                                let new_table = PubTable {
-                                    id: table_id,
-                                    pub_id,
-                                    name: name.clone(),
-                                };
-                                new_table.add_table(&mut conn).unwrap();
-                                Person::set_table(&mut conn, self.id, table_id).unwrap();
-                                ctx.text(
-                                    serde_json::to_string(&Response::CreateTable {
-                                        data: TableWithPeople {
-                                            id: table_id,
-                                            pub_id,
-                                            name,
-                                            persons: vec![self.id],
-                                        },
-                                    })
-                                    .unwrap(),
-                                );
-                                self.return_self(ctx, &mut conn);
-                            }
-                            Command::JoinTable { table_id } => {
-                                // Only allowed to be in one pub
-                                self.leave_table(&mut conn).unwrap();
-                                Person::set_table(&mut conn, self.id, table_id).unwrap();
-                                self.return_self(ctx, &mut conn);
-                            }
-                            Command::LeavePub | Command::LeaveTable => {
-                                self.leave_table(&mut conn).unwrap();
-                                if cmd == Command::LeavePub {
-                                    self.leave_pub(&mut conn).unwrap();
-                                }
-                                self.return_self(ctx, &mut conn);
-                            }
-                            Command::ListTables { pub_id } => {
-                                send_tables(ctx, &mut conn, pub_id);
-                            }
-                            Command::Send { user_id, content } => {
-                                match ADDRS.read().get(&user_id) {
-                                    Some(addr) => addr
-                                        .try_send(ClientMsg {
+                            self.return_self(&mut conn).await;
+                        }
+                        Command::ListTables { pub_id } => {
+                            self.send_tables(&mut conn, pub_id).await;
+                        }
+                        Command::Send { user_id, content } => {
+                            match ADDRS.read().get(&user_id) {
+                                Some(addr) => {
+                                    addr.send(Message::text(
+                                        serde_json::to_string(&Response::Data {
                                             author: self.id,
-                                            payload: content,
+                                            content,
                                         })
-                                        .unwrap_or_default(),
-                                    None => {
-                                        println!(
-                                            "Can't send to {}. Available addrs are {:?}",
-                                            user_id,
-                                            ADDRS.read()
-                                        );
-                                    }
-                                };
-                            }
-                            Command::SetName { name } => {
-                                Person::set_name(&mut conn, self.id, name).unwrap();
-                                self.return_self(ctx, &mut conn);
-                            }
-                            Command::GetPerson { user_id } => {
-                                ctx.text(
-                                    serde_json::to_string(&Response::Person {
-                                        data: Person::load_from_db(&mut conn, user_id).unwrap(),
-                                    })
-                                    .unwrap(),
-                                );
-                            }
-                            Command::DeleteTable { table_id } => {
-                                let pub_id = PubTable::delete_table(&mut conn, table_id).unwrap();
-                                send_tables(ctx, &mut conn, pub_id);
-                            }
-                            Command::Ping => {
-                                Person::update_last(&mut conn, self.id).unwrap();
-                                ctx.text(serde_json::to_string(&Response::Pong).unwrap());
-                            }
+                                        .unwrap(),
+                                    ))
+                                    .unwrap();
+                                }
+                                None => {
+                                    println!(
+                                        "Can't send to {}. Available addrs are {:?}",
+                                        user_id,
+                                        ADDRS.read()
+                                    );
+                                }
+                            };
+                        }
+                        Command::SetName { name } => {
+                            Person::set_name(&mut conn, self.id, name).await.unwrap();
+                            self.return_self(&mut conn).await;
+                        }
+                        Command::GetPerson { user_id } => {
+                            let person = serde_json::to_string(&Response::Person {
+                                data: Person::load_from_db(&mut conn, user_id).await.unwrap(),
+                            })
+                            .unwrap();
+                            self.send_text(person).await;
+                        }
+                        Command::DeleteTable { table_id } => {
+                            let pub_id = PubTable::delete_table(&mut conn, table_id).await.unwrap();
+                            self.send_tables(&mut conn, pub_id).await;
+                        }
+                        Command::Ping => {
+                            Person::update_last(&mut conn, self.id).await.unwrap();
+                            self.send_text(serde_json::to_string(&Response::Pong).unwrap())
+                                .await;
                         }
                     }
-                    Err(_error) => {
-                        println!("Error parsing command: {text}");
-                    }
+                }
+                Err(_error) => {
+                    println!("Error parsing command: {text}");
                 }
             }
-            Ok(ws::Message::Binary(bin)) => {
-                println!("bin: {bin:?}");
-            }
-            other => println!("Something else: {other:?}"),
+        } else if msg.is_binary() {
+            println!("bin: {msg:?}");
+        } else {
+            println!("Something else: {msg:?}")
         }
     }
 }
