@@ -12,6 +12,7 @@ export const useWebsocket = () => {
     return me && me.pub_id;
   });
   const websocket = reactUseWebsocket(path, {
+    share: true,
     onOpen: () => {
       console.debug("Websocket connected");
       listPubs(websocket);
