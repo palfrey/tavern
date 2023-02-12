@@ -2,18 +2,17 @@ use crate::error::Result;
 use crate::types::{
     Client, Command, DbConnection, Person, Pub, PubTable, PubWithPeople, Response, TableWithPeople,
 };
+use dashmap::DashMap;
 use futures_util::{SinkExt, StreamExt, TryFutureExt};
 use lazy_static::lazy_static;
 use log::{debug, info, warn};
-use parking_lot::RwLock;
-use std::collections::HashMap;
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use uuid::Uuid;
 use warp::ws::{Message, WebSocket};
 
 lazy_static! {
-    static ref ADDRS: RwLock<HashMap<Uuid, UnboundedSender<Message>>> = RwLock::new(HashMap::new());
+    static ref ADDRS: DashMap<Uuid, UnboundedSender<Message>> = DashMap::new();
 }
 
 impl Client {
@@ -36,7 +35,7 @@ impl Client {
             }
         });
 
-        ADDRS.write().insert(self.id, tx);
+        ADDRS.insert(self.id, tx);
 
         while let Some(result) = user_ws_rx.next().await {
             let msg = match result {
@@ -57,7 +56,7 @@ impl Client {
     }
 
     async fn send_text<S: Into<String> + std::fmt::Display>(&self, msg: S) {
-        ADDRS.read().get(&self.id).and_then(|tx| {
+        ADDRS.get(&self.id).and_then(|tx| {
             debug!("send_text: {}", msg);
             tx.send(Message::text(msg)).unwrap();
             Some(())
@@ -194,7 +193,7 @@ impl Client {
                             self.send_tables(&mut conn, pub_id).await;
                         }
                         Command::Send { user_id, content } => {
-                            match ADDRS.read().get(&user_id) {
+                            match ADDRS.get(&user_id) {
                                 Some(addr) => {
                                     addr.send(Message::text(
                                         serde_json::to_string(&Response::Data {
@@ -206,11 +205,7 @@ impl Client {
                                     .unwrap();
                                 }
                                 None => {
-                                    println!(
-                                        "Can't send to {}. Available addrs are {:?}",
-                                        user_id,
-                                        ADDRS.read()
-                                    );
+                                    println!("Can't send to {}. Available addrs", user_id);
                                 }
                             };
                         }
