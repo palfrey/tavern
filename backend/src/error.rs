@@ -17,13 +17,6 @@ pub enum MyError {
         #[from]
         source: uuid::Error,
     },
-    Actix {
-        content: String,
-    },
-    R2D2 {
-        #[from]
-        source: r2d2::Error,
-    },
     Postgres {
         #[from]
         source: postgres::Error,
@@ -31,9 +24,9 @@ pub enum MyError {
     #[error(transparent)]
     Other(#[from] anyhow::Error), // source and Display delegate to anyhow::Error
 }
+
 impl fmt::Display for MyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{self:?}")
     }
 }
-impl actix_web::error::ResponseError for MyError {}

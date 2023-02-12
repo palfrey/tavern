@@ -6,6 +6,7 @@ import { listPubs, listTables } from "./commands";
 export const useWebsocket = () => {
   const peerId = useUIStore((state) => state.peerId);
   const path = `wss://${window.location.hostname}:${window.location.port}/ws/${peerId}`;
+  console.log(`ws path: ${path}`);
   const currentPubId = useUIStore((s) => {
     const me = s.me();
     return me && me.pub_id;
@@ -13,7 +14,7 @@ export const useWebsocket = () => {
   const websocket = reactUseWebsocket(path, {
     share: true,
     onOpen: () => {
-      console.debug("websocket connected");
+      console.debug("Websocket connected");
       listPubs(websocket);
       if (currentPubId !== null) {
         listTables(websocket, currentPubId);

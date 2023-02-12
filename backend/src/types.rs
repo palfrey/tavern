@@ -1,10 +1,11 @@
+use bb8_postgres::PostgresConnectionManager;
 use chrono::NaiveDateTime;
-use r2d2_postgres::{postgres::NoTls, PostgresConnectionManager};
+use postgres::NoTls;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-pub type Pool = r2d2::Pool<PostgresConnectionManager<NoTls>>;
-pub type DbConnection = r2d2::PooledConnection<PostgresConnectionManager<NoTls>>;
+pub type Pool = bb8::Pool<PostgresConnectionManager<NoTls>>;
+pub type DbConnection<'a> = bb8::PooledConnection<'a, PostgresConnectionManager<NoTls>>;
 
 #[derive(Clone)]
 pub struct Client {
