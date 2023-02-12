@@ -56,11 +56,10 @@ impl Client {
     }
 
     async fn send_text<S: Into<String> + std::fmt::Display>(&self, msg: S) {
-        ADDRS.get(&self.id).and_then(|tx| {
+        if let Some(tx) = ADDRS.get(&self.id) {
             debug!("send_text: {}", msg);
             tx.send(Message::text(msg)).unwrap();
-            Some(())
-        });
+        };
     }
 
     async fn leave_pub<'a>(&self, conn: &mut DbConnection<'a>) -> Result<()> {
@@ -96,7 +95,7 @@ impl Client {
             println!("msg: {msg:?}");
         } else if msg.is_text() {
             let text = msg.to_str().unwrap();
-            match serde_json::from_str::<Command>(&text) {
+            match serde_json::from_str::<Command>(text) {
                 Ok(cmd) => {
                     println!("command: {cmd:?}");
                     let mut conn = self.pool.get().await.unwrap();
@@ -205,7 +204,7 @@ impl Client {
                                     .unwrap();
                                 }
                                 None => {
-                                    println!("Can't send to {}. Available addrs", user_id);
+                                    println!("Can't send to {user_id}. Available addrs");
                                 }
                             };
                         }
