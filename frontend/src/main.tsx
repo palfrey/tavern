@@ -1,12 +1,12 @@
-import { render } from "react-dom";
+import { createRoot } from "react-dom/client";
 import App from "./App";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const root = document.getElementById("root");
+const container = document.getElementById("root");
 const queryClient = new QueryClient();
-render(
+const root = createRoot(container!);
+root.render(
   <QueryClientProvider client={queryClient}>
     <App />
-  </QueryClientProvider>,
-  root
+  </QueryClientProvider>
 );
