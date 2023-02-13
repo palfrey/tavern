@@ -82,12 +82,14 @@ class Browser:
         if not quiet:
             self.log(f"Finding {by} {selector}")
         elements = self.find_elements(by, selector, quiet=True)
+        if self.check_logs():
+            raise Exception
         if len(elements) == 1:
             return elements[0]
         elif len(elements) == 0:
-            self.failure()
             raise NoSuchElementException
         else:
+            self.failure()
             raise WebDriverException(f"Expected 1 element, got {len(elements)}")
 
     def find_one_of(self, locators: List[Tuple[By, str]]) -> Union[WebElement, bool]:
@@ -105,7 +107,13 @@ class Browser:
     ) -> T:
         try:
             w = WebDriverWait(self.driver, timeout)
-            return w.until(lambda driver: until_func()), timeout
+
+            def until_with_logs():
+                if self.check_logs():
+                    raise Exception
+                return until_func()
+
+            return w.until(lambda driver: until_with_logs())
         except TimeoutException:
             self.failure()
             raise
@@ -115,7 +123,7 @@ class Browser:
     ) -> T:
         try:
             w = WebDriverWait(self.driver, timeout)
-            return w.until_not(lambda driver: until_func()), timeout
+            return w.until_not(lambda driver: until_func())
         except TimeoutException:
             self.failure()
             raise
@@ -124,6 +132,11 @@ class Browser:
         self, items: List[Tuple[By, str]], timeout: int = DEFAULT_TIMEOUT
     ) -> WebElement:
         return self.wait_until(lambda: self.find_one_of(items), timeout)
+
+    def wait_for_element(
+        self, by: By, selector: str, timeout: int = DEFAULT_TIMEOUT
+    ) -> WebElement:
+        return self.wait_until(lambda: self.find_element(by, selector), timeout)
 
     def wait_for_elements(
         self, by: By, selector: str, timeout: int = DEFAULT_TIMEOUT
@@ -156,6 +169,7 @@ class Browser:
         element = self.find_element(by, selector, quiet=True)
         element.click()
 
+    @retry(StaleElementReferenceException)
     def enter_text(self, by: By, selector: str, text: str) -> None:
         self.log(f"Entering '{text}' on {by}, {selector}")
         element = self.find_element(by, selector, quiet=True)

@@ -9,19 +9,16 @@ from .conftest import Browser
 def test_webcam(browser: Browser):
     browser.add_allowed_log_pattern(compile("/@vite/client"))
     browser.goto("https://nginx:8000/")
+
     pubName = f"pub-{uuid.uuid4()}"
     browser.enter_text(By.ID, "pubName", pubName)
     browser.click(By.ID, "createPub")
+    pubelement = browser.wait_for_element(By.ID, "currentPubName")
+    assert pubelement.text == pubName
 
-    def wait_for_pub():
-        pubs = browser.find_elements(By.CLASS_NAME, "pubItem")
-        pubNames = []
-        for pub in pubs:
-            currentPub = pub.find_element(By.CLASS_NAME, "pubName").text
-            if pub.find_element(By.CLASS_NAME, "pubName").text == pubName:
-                return True
-            pubNames.append(currentPub)
-        browser.log(f"Pubs: {pubNames}")
-        return False
+    tableName = f"table-{uuid.uuid4()}"
+    browser.enter_text(By.ID, "tableName", tableName)
+    browser.click(By.ID, "createTable")
 
-    browser.wait_until(wait_for_pub)
+    video = browser.wait_for_element(By.TAG_NAME, "video")
+    print(video)
