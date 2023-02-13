@@ -1,8 +1,7 @@
 import { Person, Pub, Table } from "./Data";
 import produce from "immer";
 import { useUIStore } from "./Store";
-import { send } from "./commands";
-import { WebSocketHook } from "react-use-websocket/dist/lib/types";
+import { send, WS } from "./commands";
 
 interface PubsMessage {
   kind: "Pubs";
@@ -48,7 +47,7 @@ export type SocketMessage =
   | PersonMessage
   | DataMessage;
 
-function handleDataMsg(websocket: WebSocketHook, peer: string, msg: any) {
+function handleDataMsg(websocket: WS, peer: string, msg: any) {
   console.log("video msg from", peer, JSON.stringify(msg));
   let conn = useUIStore((s) => {
     if (peer in s.peers) {
@@ -80,7 +79,7 @@ function handleDataMsg(websocket: WebSocketHook, peer: string, msg: any) {
   }
 }
 
-export const doMessage = (websocket: WebSocketHook, message: SocketMessage) => {
+export const doMessage = (websocket: WS, message: SocketMessage) => {
   switch (message.kind) {
     case "Pubs":
       useUIStore.setState((s) => ({

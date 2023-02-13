@@ -62,6 +62,7 @@ export const useUIStore = create<IUIStore>()(
         } as IUIStore)
     ),
     {
+      name: "tavern",
       partialize: (state) => ({
         ...state,
         mediaStream: null,

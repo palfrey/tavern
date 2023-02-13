@@ -155,9 +155,9 @@ export function Videos() {
         borderColor: "black",
       }}
     >
-      <tbody width="100%">
+      <tbody style={{ width: "100%" }}>
         {[...Array(size).keys()].map((x) => (
-          <tr key={`row-${x}`} width="100%">
+          <tr key={`row-${x}`} style={{ width: "100%" }}>
             {[...Array(size).keys()].map((y) => {
               const idx = x * size + y;
               if (idx >= total) {
