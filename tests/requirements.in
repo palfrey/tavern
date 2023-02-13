@@ -1,0 +1,5 @@
+pytest
+pytest-watch
+retry
+selenium
+pip-tools

@@ -40,7 +40,7 @@ export function Pub() {
       <div>Tables</div>
       <ul>
         {tables.map((table) => (
-          <li key={table.id}>
+          <li key={table.id} className="tableItem">
             {table.name}
             <span>&nbsp;</span>
             <button
