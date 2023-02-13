@@ -52,7 +52,6 @@ jobs:
       run: cd frontend && pnpm run check-types
 
   integration-tests:
-    name: Docker tests
     runs-on: ubuntu-latest
     needs: [backend, frontend]
     steps:
