@@ -59,6 +59,7 @@
     "watch-test": "jest --watchAll --coverage",
     "coverage": "jest --coverage",
     "lint": "eslint .",
-    "watch-lint": "esw --watch . --ext=.ts,.tsx"
+    "watch-lint": "esw --watch . --ext=.ts,.tsx",
+    "check-types": "tsc --noemit"
   }
 }
