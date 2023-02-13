@@ -1,7 +1,7 @@
-import { doMessage, SocketMessage } from "./messages";
 import { useUIStore } from "./Store";
-import { default as reactUseWebsocket } from "react-use-websocket";
 import { listPubs, listTables } from "./commands";
+import { WebsocketWrapper } from "./WebsocketHelper";
+import { doMessage, SocketMessage } from "./messages";
 
 export const useWebsocket = () => {
   const peerId = useUIStore((state) => state.peerId);
@@ -11,28 +11,18 @@ export const useWebsocket = () => {
     const me = s.me();
     return me && me.pub_id;
   });
-  const websocket = reactUseWebsocket(path, {
-    share: true,
-    onOpen: () => {
-      console.debug("Websocket connected");
-      listPubs(websocket);
-      if (currentPubId !== null) {
-        listTables(websocket, currentPubId);
-      }
-    },
-    filter: () => false, // To fix re-render with last message https://github.com/robtaussig/react-use-websocket/issues/93#issuecomment-876702088
-    onMessage: (message) => {
-      console.debug("Websocket message", message.data);
-      const decoded: SocketMessage = JSON.parse(message.data as string);
-      doMessage(websocket, decoded);
-    },
-    onError: (error) => {
-      console.debug("Websocket error", JSON.stringify(error));
-    },
-    onClose: (event) => {
-      console.debug("Websocket closed", event);
-    },
+  WebsocketWrapper.setOpenFunc((websocket: WebSocket) => {
+    console.debug("Websocket connected");
+    listPubs(WebsocketWrapper);
+    if (currentPubId !== null) {
+      listTables(WebsocketWrapper, currentPubId);
+    }
   });
-
-  return websocket;
+  WebsocketWrapper.setMessageFunc((message: MessageEvent) => {
+    console.debug("Websocket message", message.data);
+    const decoded: SocketMessage = JSON.parse(message.data as string);
+    doMessage(WebsocketWrapper, decoded);
+  });
+  WebsocketWrapper.connect(path);
+  return WebsocketWrapper;
 };
