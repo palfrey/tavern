@@ -11,11 +11,11 @@ export function useMediaStreamWrapper() {
       navigator.mediaDevices
         .getUserMedia({ video: true, audio: false })
         .then((stream) => {
-          console.log("got stream", stream);
+          console.debug("got stream", stream);
           setMs(stream);
         })
         .catch((err) => {
-          console.log("usermedia error", err);
+          console.warn("usermedia error", err);
           setLastError(err);
         });
     }

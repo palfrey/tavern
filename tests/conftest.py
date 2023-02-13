@@ -2,6 +2,7 @@ import re
 import time
 from datetime import datetime
 from os import environ
+from pathlib import Path
 from typing import Any, Callable, List, Tuple, TypeVar, Union
 
 import pytest
@@ -28,7 +29,9 @@ class Browser:
         options = ChromeOptions()
         options.accept_insecure_certs = True
         options.add_argument("--use-fake-device-for-media-stream")
-        options.add_argument("--use-file-for-fake-video-capture=newfile.mjpeg")
+        options.add_argument("--use-fake-ui-for-media-stream")
+        path = Path(__file__).parent.joinpath("test-card-f.mjpeg")
+        options.add_argument(f"--use-file-for-fake-video-capture={path}")
         self.driver = webdriver.Remote(
             command_executor=environ["SELENIUM_URL"],
             options=options,
@@ -63,9 +66,12 @@ class Browser:
 
         return fail
 
-    def failure(self):
+    def screenshot(self):
         when = datetime.now().isoformat(timespec="seconds").replace(":", "")
         self.driver.get_screenshot_as_file(f"screenshots/{when}.png")
+
+    def failure(self):
+        self.screenshot()
         self.check_logs()
 
     def find_elements(

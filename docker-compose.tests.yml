@@ -3,6 +3,8 @@ services:
   selenium:
     image: selenium/standalone-chrome:4.8.0-20230202
     shm_size: 2gb
+    volumes:
+    - ./tests:/work:cached
   ui-tests:
     build: tests
     volumes:

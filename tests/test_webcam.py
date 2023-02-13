@@ -20,5 +20,5 @@ def test_webcam(browser: Browser):
     browser.enter_text(By.ID, "tableName", tableName)
     browser.click(By.ID, "createTable")
 
-    video = browser.wait_for_element(By.TAG_NAME, "video")
-    print(video)
+    browser.wait_for_element(By.TAG_NAME, "video")
+    browser.screenshot()
