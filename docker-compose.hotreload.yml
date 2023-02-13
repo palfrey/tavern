@@ -1,0 +1,11 @@
+version: '3'
+services:
+  backend:
+    build: backend
+    command: wait-for-it postgres:5432 -s -t 0 -- cargo watch -s "cargo fmt && cargo run"
+    volumes:
+    - ./backend:/work:cached
+    - ./frontend:/frontend:cached
+  frontend:
+    volumes:
+    - ./frontend:/work
