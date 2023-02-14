@@ -161,7 +161,7 @@ export function Videos() {
             {[...Array(size).keys()].map((y) => {
               const idx = x * size + y;
               if (idx >= total) {
-                return <React.Fragment></React.Fragment>;
+                return <React.Fragment key={`stream-${idx}`}></React.Fragment>;
               }
               const entry = streams[idx];
               return (
