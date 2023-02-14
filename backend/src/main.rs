@@ -5,21 +5,22 @@ mod migrations;
 mod types;
 
 use crate::types::{Client, Person};
-use anyhow::Context;
 use log::info;
 use std::convert::Infallible;
-use std::fs;
+use std::io;
 use std::net::SocketAddr;
 use std::ops::DerefMut;
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
-use std::{env, io, path::PathBuf};
+use tokio::sync::Notify;
 use tokio::task;
+use tokio::time::timeout;
 use uuid::Uuid;
 use warp::ws::WebSocket;
 use warp::Filter;
 
 async fn websocket(id_str: String, ws: WebSocket, pool: types::Pool) {
+    info!("starting websocket");
     let id = Uuid::parse_str(&id_str).unwrap();
     let conn = pool.get().await.unwrap();
     Person::add_person(&conn, id).await.unwrap();
@@ -30,22 +31,6 @@ async fn websocket(id_str: String, ws: WebSocket, pool: types::Pool) {
     }
     .run_user(ws)
     .await;
-}
-
-async fn index(
-    query_filename: String,
-) -> ::std::result::Result<Box<dyn warp::Reply>, warp::Rejection> {
-    let mut path = PathBuf::from(env::var("FRONTEND").unwrap());
-    let filename = match query_filename.as_str() {
-        "" => "index.html",
-        other => other,
-    };
-    path.push(filename);
-    Ok(Box::new(
-        fs::read_to_string(&path)
-            .context(format!("Opening {:?}", &path))
-            .unwrap(),
-    ))
 }
 
 fn with_db(pool: types::Pool) -> impl Filter<Extract = (types::Pool,), Error = Infallible> + Clone {
@@ -64,36 +49,34 @@ async fn main() -> io::Result<()> {
         .await
         .unwrap();
 
-    let pair = Arc::new((Mutex::new(false), Condvar::new()));
-    let thread_pair = Arc::clone(&pair);
+    let notifier = Arc::new(Notify::new());
+    let thread_notifier = Arc::clone(&notifier);
 
     let thread_pool = pool.clone();
     task::spawn(async move {
-        let (lock, cvar) = &*thread_pair;
-        let mut conn = thread_pool.get().await.unwrap();
         loop {
+            info!("Start cleanup");
+            let mut conn = thread_pool.get().await.unwrap();
             Person::cleanup_outdated(&mut conn).await.unwrap();
             info!("Cleanup done");
-            let started = lock.lock().unwrap();
-            let result = cvar.wait_timeout(started, Duration::from_secs(60)).unwrap();
-            if !result.1.timed_out() {
+            if let Ok(_) = timeout(Duration::from_secs(60), thread_notifier.notified()).await {
                 break;
             }
         }
     });
 
-    let files = warp::path!(String).and_then(index);
     let ws = warp::path!("ws" / String)
         .and(warp::ws())
         .and(with_db(pool.clone()))
         .map(|id: String, ws: warp::ws::Ws, pool: types::Pool| {
+            info!("WS");
             ws.on_upgrade(move |socket| websocket(id, socket, pool))
         });
-    let routes = files.or(ws);
+    let routes = ws;
 
     warp::serve(routes)
         .run("0.0.0.0:5000".parse::<SocketAddr>().unwrap())
         .await;
-    pair.1.notify_one();
+    notifier.notify_one();
     Ok(())
 }

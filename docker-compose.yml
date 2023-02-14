@@ -8,15 +8,12 @@ services:
     - 5432:5432
   backend:
     build: backend
-    command: wait-for-it postgres:5432 -s -t 0 -- cargo watch -s "cargo fmt && cargo run"
+    command: wait-for-it postgres:5432 -s -t 0 -- cargo run
     environment:
     - DATABASE_URL=postgresql://postgres:mysecretpassword@postgres:5432/postgres
     - FRONTEND=/frontend
     - RUST_BACKTRACE=1
     - RUST_LOG=info
-    volumes:
-    - ./backend:/work:cached
-    - ./frontend:/frontend:cached
     links:
     - postgres
     ports:
@@ -24,8 +21,6 @@ services:
     restart: unless-stopped
   frontend:
     build: frontend
-    volumes:
-    - ./frontend:/work
     restart: unless-stopped
     ports:
     - 9000:9000

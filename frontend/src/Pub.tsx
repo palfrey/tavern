@@ -22,7 +22,7 @@ export function Pub() {
   return (
     <div>
       {" "}
-      <h1>{currentPub.name}</h1>
+      <h1 id="currentPubName">{currentPub.name}</h1>
       <br />
       <button
         className="btn btn-danger"
@@ -40,7 +40,7 @@ export function Pub() {
       <div>Tables</div>
       <ul>
         {tables.map((table) => (
-          <li key={table.id}>
+          <li key={table.id} className="tableItem">
             {table.name}
             <span>&nbsp;</span>
             <button
@@ -74,6 +74,7 @@ export function Pub() {
           />
         </div>
         <button
+          id="createTable"
           type="button"
           className="btn btn-primary"
           onClick={() => createTable(websocket, currentPub.id, tableName)}

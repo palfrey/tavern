@@ -7,3 +7,6 @@ Common Name: localhost
 openssl x509 -text -noout -in localhost.crt
 
 https://blog.logrocket.com/create-an-async-crud-web-service-in-rust-with-warp/
+
+youtube-dl https://www.youtube.com/watch?v=6Xbe_mFr4rg
+ffmpeg -i test-card-f.mkv test-card-f.mjpeg

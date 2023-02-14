@@ -41,7 +41,7 @@ function App() {
       ping(websocket);
     }, 5000);
     return () => clearInterval(interval);
-  }, [websocket?.readyState]);
+  }, []);
 
   useEffect(() => {
     if (mediaStream === null && newMediaStream.mediaStream !== null) {

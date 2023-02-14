@@ -19,11 +19,11 @@ export default function Home() {
       <div>Pubs</div>
       <ul>
         {pubs.map((pub) => (
-          <li key={pub.id}>
-            {pub.name}
+          <li key={pub.id} className="pubItem">
+            <span className="pubName">{pub.name}</span>
             <span>&nbsp;</span>
             <button
-              className="btn btn-primary"
+              className="btn btn-primary joinPub"
               onClick={() => joinPub(websocket, pub.id)}
             >
               Join
@@ -31,7 +31,7 @@ export default function Home() {
             <span>&nbsp;</span>
             {pub.persons.length == 0 && (
               <button
-                className="btn btn-danger"
+                className="btn btn-danger deletePub"
                 onClick={() => deletePub(websocket, pub.id)}
               >
                 Delete
@@ -53,6 +53,7 @@ export default function Home() {
           />
         </div>
         <button
+          id="createPub"
           type="button"
           className="btn btn-primary"
           onClick={() => createPub(websocket, pubName)}

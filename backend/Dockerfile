@@ -8,5 +8,5 @@ RUN rustup component add rustfmt-preview
 COPY Cargo.* /work/
 COPY src/ /work/src/
 RUN cargo fetch
-#RUN cargo build
+RUN cargo build
 CMD cargo watch -s "cargo fmt && cargo run"

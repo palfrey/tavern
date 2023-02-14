@@ -1,4 +1,4 @@
-import { WebSocketHook, JsonValue } from "react-use-websocket/dist/lib/types";
+import { websocketWrapper } from "./WebsocketHelper";
 
 interface ListPubsCommand {
   kind: "ListPubs";
@@ -73,12 +73,12 @@ type Command =
   | SendCommand
   | PingCommand;
 
-export type WS = WebSocketHook<JsonValue | null>;
+export type WS = websocketWrapper;
 
 export const sendCommand = (websocket: WS, msg: Command) => {
   const data = JSON.stringify(msg);
   console.log("Sending", data);
-  websocket.sendMessage(data);
+  websocket.send(data);
 };
 
 export function listPubs(websocket: WS): void {
