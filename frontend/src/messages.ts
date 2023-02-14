@@ -82,6 +82,7 @@ function handleDataMsg(websocket: WS, peer: string, msg: any) {
 export const doMessage = (websocket: WS, message: SocketMessage) => {
   switch (message.kind) {
     case "Pubs":
+      message.list.sort((a, b) => a.name.localeCompare(b.name));
       useUIStore.setState((s) => ({
         ...s,
         pubs: message.list,

@@ -21,4 +21,16 @@ def test_webcam(browser: Browser):
     browser.click(By.ID, "createTable")
 
     browser.wait_for_element(By.TAG_NAME, "video")
+    # browser.screenshot()
+
+    original_window = browser.driver.current_window_handle
+    browser.driver.switch_to.new_window("window")
+    assert browser.driver.current_window_handle != original_window
+
+    browser.goto("https://nginx:8000/")
+    browser.wait_for_element(By.ID, f"join-{pubName}").click()
+    browser.wait_for_element(By.ID, f"join-{tableName}").click()
+
+    videos = browser.wait_for_elements(By.TAG_NAME, "video")
+    assert len(videos) == 2
     browser.screenshot()

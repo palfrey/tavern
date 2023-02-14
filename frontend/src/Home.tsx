@@ -23,6 +23,7 @@ export default function Home() {
             <span className="pubName">{pub.name}</span>
             <span>&nbsp;</span>
             <button
+              id={"join-" + pub.name}
               className="btn btn-primary joinPub"
               onClick={() => joinPub(websocket, pub.id)}
             >

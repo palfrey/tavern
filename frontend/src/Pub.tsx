@@ -44,6 +44,7 @@ export function Pub() {
             {table.name}
             <span>&nbsp;</span>
             <button
+              id={"join-" + table.name}
               className="btn btn-primary"
               onClick={() => joinTable(websocket, table.id)}
             >
