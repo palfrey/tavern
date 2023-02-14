@@ -45,12 +45,12 @@ function VideoComponent({
       return;
     }
 
-    console.log("update video", name);
+    console.debug("update video", name, type, rtcpeer);
     if (type === "local") {
       element.srcObject = stream;
     } else {
       if (!(stream instanceof MediaStream)) {
-        console.log("wrong remote stream", type, stream);
+        console.warn("wrong remote stream", type, stream);
         throw Error;
       }
       if (rtcpeer === null) {
@@ -62,47 +62,47 @@ function VideoComponent({
         for (var track of tracks) {
           conn.addTrack(track, stream);
           conn.onicecandidate = (candidate) => {
-            console.log("candidate", candidate);
+            console.debug("candidate", candidate);
             if (candidate.candidate !== null) {
               send(websocket, name, JSON.stringify(candidate.candidate));
             }
           };
           conn.onnegotiationneeded = () => {
             conn.createOffer().then((offer) => {
-              console.log("offer", offer);
+              console.debug("offer", offer);
               conn.setLocalDescription(offer).then(() => {
-                console.log("local desc", conn.localDescription);
+                console.debug("local desc", conn.localDescription);
                 send(websocket, name, JSON.stringify(conn.localDescription));
               });
             });
           };
           conn.ontrack = (event) => {
             const remoteStream = event.streams[0];
-            console.log("ontrack", event, remoteStream);
+            console.debug("ontrack", event, remoteStream);
             element.srcObject = remoteStream;
           };
-          setRtcpeer(conn);
-          useUIStore.setState((s) => ({
-            ...s,
-            peers: {
-              ...s.peers,
-              name: conn,
-            },
-          }));
         }
+        setRtcpeer(conn);
+        useUIStore.setState((s) => ({
+          ...s,
+          peers: {
+            ...s.peers,
+            name: conn,
+          },
+        }));
       }
     }
   };
   useEffect(() => {
     update();
     return () => {
-      console.log("unmounting", name);
+      console.debug("unmounting", name);
       if (rtcpeer != null) {
         rtcpeer.close();
         setRtcpeer(null);
       }
     };
-  });
+  }, []);
   return <video id={name} autoPlay={true} />;
 }
 
