@@ -1,8 +1,8 @@
 let websocket: WebSocket | null = null;
 let current_url: string | null = null;
-let openfunc: ((websocket: WebSocket) => void) | null = null;
+let openfunc: (() => void) | null = null;
 let messagefunc: ((message: MessageEvent) => void) | null = null;
-let messageQueue: string[] = [];
+const messageQueue: string[] = [];
 
 export class websocketWrapper {
   _configureOpen() {
@@ -12,7 +12,7 @@ export class websocketWrapper {
         if (messageQueue.length !== 0) {
           console.info(`Buffer: ${messageQueue.length}`);
         }
-        funccopy(websocket!);
+        funccopy();
       };
     }
   }
@@ -51,7 +51,7 @@ export class websocketWrapper {
     }
   }
 
-  setOpenFunc(func: (websocket: WebSocket) => void) {
+  setOpenFunc(func: () => void) {
     openfunc = func;
     this._configureOpen();
   }

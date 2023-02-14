@@ -20,7 +20,10 @@ export function Table() {
       <br />
       <button
         className="btn btn-danger"
-        onClick={() => leaveTable(websocket, currentTable.id)}
+        onClick={(evt) => {
+          leaveTable(websocket, currentTable.id);
+          evt.preventDefault();
+        }}
       >
         Leave table
       </button>

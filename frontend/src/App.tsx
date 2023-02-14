@@ -56,7 +56,7 @@ function App() {
     {
       path: "/",
       element: <Core />,
-      // errorElement: <ErrorPage />,
+      errorElement: <ErrorPage />,
       loader: async (request) => {
         if (request.request.url.endsWith("/")) {
           console.debug("redirect for home", request.request.url);

@@ -59,7 +59,7 @@ function VideoComponent({
         };
         const conn = new RTCPeerConnection(config);
         const tracks = stream.getTracks();
-        for (var track of tracks) {
+        for (const track of tracks) {
           conn.addTrack(track, stream);
           conn.onicecandidate = (candidate) => {
             console.warn("candidate", candidate);

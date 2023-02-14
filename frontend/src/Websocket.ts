@@ -11,7 +11,7 @@ export const useWebsocket = () => {
     const me = s.me();
     return me && me.pub_id;
   });
-  WebsocketWrapper.setOpenFunc((websocket: WebSocket) => {
+  WebsocketWrapper.setOpenFunc(() => {
     console.debug("Websocket connected");
     listPubs(WebsocketWrapper);
     if (currentPubId !== null) {
