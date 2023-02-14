@@ -14,7 +14,10 @@ export default function Home() {
         type="button"
         className="btn btn-secondary"
         value="Update pub list"
-        onClick={() => listPubs(websocket)}
+        onClick={(evt) => {
+          listPubs(websocket);
+          evt.preventDefault();
+        }}
       ></input>
       <div>Pubs</div>
       <ul>
@@ -24,7 +27,10 @@ export default function Home() {
             <span>&nbsp;</span>
             <button
               className="btn btn-primary joinPub"
-              onClick={() => joinPub(websocket, pub.id)}
+              onClick={(evt) => {
+                joinPub(websocket, pub.id);
+                evt.preventDefault();
+              }}
             >
               Join
             </button>
@@ -32,7 +38,10 @@ export default function Home() {
             {pub.persons.length == 0 && (
               <button
                 className="btn btn-danger deletePub"
-                onClick={() => deletePub(websocket, pub.id)}
+                onClick={(evt) => {
+                  deletePub(websocket, pub.id);
+                  evt.preventDefault();
+                }}
               >
                 Delete
               </button>
@@ -56,7 +65,10 @@ export default function Home() {
           id="createPub"
           type="button"
           className="btn btn-primary"
-          onClick={() => createPub(websocket, pubName)}
+          onClick={(evt) => {
+            createPub(websocket, pubName);
+            evt.preventDefault();
+          }}
         >
           Create pub
         </button>

@@ -59,7 +59,7 @@ function VideoComponent({
         };
         const conn = new RTCPeerConnection(config);
         const tracks = stream.getTracks();
-        for (var track of tracks) {
+        for (const track of tracks) {
           conn.addTrack(track, stream);
           conn.onicecandidate = (candidate) => {
             console.log("candidate", candidate);
@@ -161,7 +161,7 @@ export function Videos() {
             {[...Array(size).keys()].map((y) => {
               const idx = x * size + y;
               if (idx >= total) {
-                return <React.Fragment></React.Fragment>;
+                return <React.Fragment key={`stream-${idx}`}></React.Fragment>;
               }
               const entry = streams[idx];
               return (
