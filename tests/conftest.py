@@ -141,9 +141,11 @@ class Browser:
         return self.wait_until(lambda: self.find_one_of(items), timeout)
 
     def wait_for_element(
-        self, by: By, selector: str, timeout: int = DEFAULT_TIMEOUT
+        self, by: By, selector: str, timeout: int = DEFAULT_TIMEOUT, quiet=False
     ) -> WebElement:
-        return self.wait_until(lambda: self.find_element(by, selector), timeout)
+        return self.wait_until(
+            lambda: self.find_element(by, selector, quiet=quiet), timeout
+        )
 
     def wait_for_elements(
         self, by: By, selector: str, timeout: int = DEFAULT_TIMEOUT
@@ -173,7 +175,7 @@ class Browser:
     @retry(StaleElementReferenceException)
     def click(self, by: By, selector: str) -> None:
         self.log(f"Clicking {by}, {selector}")
-        element = self.find_element(by, selector, quiet=True)
+        element = self.wait_for_element(by, selector, quiet=True)
         element.click()
 
     @retry(StaleElementReferenceException)

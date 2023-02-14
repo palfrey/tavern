@@ -26,15 +26,26 @@ def test_webcam(browser_factory: Callable[[], Browser]):
     browser.enter_text(By.ID, "tableName", tableName)
     browser.click(By.ID, "createTable")
 
-    browser.wait_for_element(By.TAG_NAME, "video")
+    video = browser.wait_for_element(By.TAG_NAME, "video")
+    assert video.get_property("srcObject")["active"]
     # browser.screenshot()
 
     new_browser = browser_factory()
     set_vite_allowed(new_browser)
     new_browser.goto("https://nginx:8000/")
-    new_browser.wait_for_element(By.ID, f"join-{pubName}").click()
-    new_browser.wait_for_element(By.ID, f"join-{tableName}").click()
+    new_browser.click(By.ID, f"join-{pubName}")
+    new_browser.click(By.ID, f"join-{tableName}")
 
-    videos = new_browser.wait_for_elements(By.TAG_NAME, "video")
-    assert len(videos) == 2
+    def wait_videos():
+        videos = new_browser.wait_for_elements(By.TAG_NAME, "video")
+        browser.check_logs()
+        assert len(videos) == 2
+        for video in videos:
+            srcObject = video.get_property("srcObject")
+            if srcObject is None:
+                return False
+            assert srcObject["active"]
+        return True
+
+    new_browser.wait_until(wait_videos)
     new_browser.screenshot()

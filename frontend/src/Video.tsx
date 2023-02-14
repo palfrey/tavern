@@ -62,23 +62,23 @@ function VideoComponent({
         for (var track of tracks) {
           conn.addTrack(track, stream);
           conn.onicecandidate = (candidate) => {
-            console.debug("candidate", candidate);
+            console.warn("candidate", candidate);
             if (candidate.candidate !== null) {
               send(websocket, name, JSON.stringify(candidate.candidate));
             }
           };
           conn.onnegotiationneeded = () => {
             conn.createOffer().then((offer) => {
-              console.debug("offer", offer);
+              console.warn("offer", offer);
               conn.setLocalDescription(offer).then(() => {
-                console.debug("local desc", conn.localDescription);
+                console.warn("local desc", conn.localDescription);
                 send(websocket, name, JSON.stringify(conn.localDescription));
               });
             });
           };
           conn.ontrack = (event) => {
             const remoteStream = event.streams[0];
-            console.debug("ontrack", event, remoteStream);
+            console.warn("ontrack", event, remoteStream);
             element.srcObject = remoteStream;
           };
         }
