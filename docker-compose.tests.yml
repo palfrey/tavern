@@ -2,9 +2,13 @@ version: '3'
 services:
   selenium:
     image: selenium/standalone-chrome:4.8.0-20230202
+    ports:
+    - 7900:7900 # Goto http://localhost:7900/?autoconnect=1&resize=scale&password=secret
     shm_size: 2gb
     volumes:
     - ./tests:/work:cached
+    environment:
+    - SE_NODE_MAX_SESSIONS=3
   ui-tests:
     build: tests
     volumes:

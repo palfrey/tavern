@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 from os import environ
 from pathlib import Path
-from typing import Any, Callable, List, Tuple, TypeVar, Union
+from typing import Any, Callable, Iterator, List, Tuple, TypeVar, Union
 
 import pytest
 from retry import retry
@@ -25,7 +25,7 @@ T = TypeVar("T")
 class Browser:
     DEFAULT_TIMEOUT = 10
 
-    def __init__(self):
+    def __init__(self, id=None):
         options = ChromeOptions()
         options.accept_insecure_certs = True
         options.add_argument("--use-fake-device-for-media-stream")
@@ -38,12 +38,13 @@ class Browser:
         )
         self.start = time.time()
         self.allowed: List[re.Pattern] = []
+        self.id = str(id) if id is not None else ""
 
     def add_allowed_log_pattern(self, regex: re.Pattern):
         self.allowed.append(regex)
 
     def log(self, message):
-        print(f"{(time.time()-self.start):.3f}: {message}")
+        print(f"{(time.time()-self.start):.3f}: {self.id}: {message}")
 
     def goto(self, url):
         self.log(f"Going to {url}")
@@ -192,7 +193,24 @@ class Browser:
 
 
 @pytest.fixture
-def browser():
-    b = Browser()
-    yield b
-    b.driver.quit()
+def browser_factory() -> Iterator[Callable[[], Browser]]:
+    browsers: List[Browser] = []
+
+    id = 0
+
+    def _make_browser():
+        nonlocal id
+        id += 1
+        b = Browser(id=id)
+        browsers.append(b)
+        return b
+
+    yield _make_browser
+
+    for browser in browsers:
+        browser.driver.quit()
+
+
+@pytest.fixture
+def browser(browser_factory: Callable[[], Browser]) -> Browser:
+    return browser_factory()

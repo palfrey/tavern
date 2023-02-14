@@ -1,13 +1,19 @@
 import uuid
 from re import compile
+from typing import Callable
 
 from selenium.webdriver.common.by import By
 
 from .conftest import Browser
 
 
-def test_webcam(browser: Browser):
+def set_vite_allowed(browser: Browser):
     browser.add_allowed_log_pattern(compile("/@vite/client"))
+
+
+def test_webcam(browser_factory: Callable[[], Browser]):
+    browser = browser_factory()
+    set_vite_allowed(browser)
     browser.goto("https://nginx:8000/")
 
     pubName = f"pub-{uuid.uuid4()}"
@@ -23,14 +29,12 @@ def test_webcam(browser: Browser):
     browser.wait_for_element(By.TAG_NAME, "video")
     # browser.screenshot()
 
-    original_window = browser.driver.current_window_handle
-    browser.driver.switch_to.new_window("window")
-    assert browser.driver.current_window_handle != original_window
+    new_browser = browser_factory()
+    set_vite_allowed(new_browser)
+    new_browser.goto("https://nginx:8000/")
+    new_browser.wait_for_element(By.ID, f"join-{pubName}").click()
+    new_browser.wait_for_element(By.ID, f"join-{tableName}").click()
 
-    browser.goto("https://nginx:8000/")
-    browser.wait_for_element(By.ID, f"join-{pubName}").click()
-    browser.wait_for_element(By.ID, f"join-{tableName}").click()
-
-    videos = browser.wait_for_elements(By.TAG_NAME, "video")
+    videos = new_browser.wait_for_elements(By.TAG_NAME, "video")
     assert len(videos) == 2
-    browser.screenshot()
+    new_browser.screenshot()
