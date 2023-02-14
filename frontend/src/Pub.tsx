@@ -26,7 +26,10 @@ export function Pub() {
       <br />
       <button
         className="btn btn-danger"
-        onClick={() => leavePub(websocket, currentPub.id)}
+        onClick={(evt) => {
+          leavePub(websocket, currentPub.id);
+          evt.preventDefault();
+        }}
       >
         Leave pub
       </button>
@@ -35,7 +38,10 @@ export function Pub() {
         type="button"
         className="btn btn-secondary"
         value="Update table list"
-        onClick={() => listTables(websocket, currentPub.id)}
+        onClick={(evt) => {
+          listTables(websocket, currentPub.id);
+          evt.preventDefault();
+        }}
       />
       <div>Tables</div>
       <ul>
@@ -45,7 +51,10 @@ export function Pub() {
             <span>&nbsp;</span>
             <button
               className="btn btn-primary"
-              onClick={() => joinTable(websocket, table.id)}
+              onClick={(evt) => {
+                joinTable(websocket, table.id);
+                evt.preventDefault();
+              }}
             >
               Join
             </button>
@@ -53,7 +62,10 @@ export function Pub() {
             {table.persons.length == 0 && (
               <button
                 className="btn btn-danger"
-                onClick={() => deleteTable(websocket, table.id)}
+                onClick={(evt) => {
+                  deleteTable(websocket, table.id);
+                  evt.preventDefault();
+                }}
               >
                 Delete
               </button>
@@ -70,14 +82,20 @@ export function Pub() {
             id="tableName"
             placeholder="Enter table name"
             value={tableName}
-            onChange={(evt) => setTableName(evt.target.value)}
+            onChange={(evt) => {
+              setTableName(evt.target.value);
+              evt.preventDefault();
+            }}
           />
         </div>
         <button
           id="createTable"
           type="button"
           className="btn btn-primary"
-          onClick={() => createTable(websocket, currentPub.id, tableName)}
+          onClick={(evt) => {
+            createTable(websocket, currentPub.id, tableName);
+            evt.preventDefault();
+          }}
         >
           Create table
         </button>
