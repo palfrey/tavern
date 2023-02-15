@@ -102,6 +102,7 @@ function VideoComponent({
         setRtcpeer(null);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return <video id={name} autoPlay={true} />;
 }

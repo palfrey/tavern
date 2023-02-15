@@ -39,7 +39,7 @@ function Core() {
         navigate("/Pub");
       }
     }
-  }, [me, location]);
+  }, [me, location, navigate]);
   return (
     <div>
       <nav className="navbar navbar-expand-md navbar-dark bg-dark fixed-top">

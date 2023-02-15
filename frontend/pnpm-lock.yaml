@@ -24,6 +24,7 @@ specifiers:
   bootstrap: ^4
   eslint: ^8.27.0
   eslint-plugin-react: ^7.31.10
+  eslint-plugin-react-hooks: ^4.6.0
   eslint-plugin-require-prevent-default: ^0.1.1
   eslint-watch: ^8.0.0
   immer: ^9.0.19
@@ -81,6 +82,7 @@ devDependencies:
   bootstrap: 4.6.2_nb7xlqme3dfq4rdvdh33y6svjq
   eslint: 8.33.0
   eslint-plugin-react: 7.32.2_eslint@8.33.0
+  eslint-plugin-react-hooks: 4.6.0_eslint@8.33.0
   eslint-plugin-require-prevent-default: 0.1.1_eslint@8.33.0
   eslint-watch: 8.0.0_eslint@8.33.0
   jest: 29.4.1_zfha7dvnw4nti6zkbsmhmn6xo4
@@ -2342,6 +2344,15 @@ packages:
       optionator: 0.8.3
     optionalDependencies:
       source-map: 0.6.1
+    dev: true
+
+  /eslint-plugin-react-hooks/4.6.0_eslint@8.33.0:
+    resolution: {integrity: sha512-oFc7Itz9Qxh2x4gNHStv3BqJq54ExXmfC+a1NjAta66IAN87Wu0R/QArgIS9qKzX3dXKPI9H5crl9QchNMY9+g==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      eslint: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0-0
+    dependencies:
+      eslint: 8.33.0
     dev: true
 
   /eslint-plugin-react/7.32.2_eslint@8.33.0:
