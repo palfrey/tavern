@@ -1,6 +1,6 @@
-use crate::error::Result;
 use crate::types::{
-    Client, Command, DbConnection, Person, Pub, PubTable, PubWithPeople, Response, TableWithPeople,
+    Command, Connection, DbConnection, Person, Pub, PubTable, PubWithPeople, Response,
+    TableWithPeople,
 };
 use dashmap::DashMap;
 use futures_util::{SinkExt, StreamExt, TryFutureExt};
@@ -11,11 +11,48 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 use uuid::Uuid;
 use warp::ws::{Message, WebSocket};
 
-lazy_static! {
-    static ref ADDRS: DashMap<Uuid, UnboundedSender<Message>> = DashMap::new();
+type ClientChannel = UnboundedSender<Message>;
+struct Client {
+    sender: ClientChannel,
+    pub_id: Option<Uuid>,
+    table_id: Option<Uuid>,
 }
 
-impl Client {
+lazy_static! {
+    static ref CLIENTS: DashMap<Uuid, Client> = DashMap::new();
+}
+
+fn get_clients_in_pub(pub_id: Uuid) -> Vec<ClientChannel> {
+    let mut ret = vec![];
+    for client in CLIENTS.iter() {
+        if client.pub_id.map(|p| p == pub_id).unwrap_or(false) {
+            ret.push(client.sender.clone());
+        }
+    }
+    return ret;
+}
+
+fn get_clients_in_table(table_id: Uuid) -> Vec<ClientChannel> {
+    let mut ret = vec![];
+    for client in CLIENTS.iter() {
+        if client.table_id.map(|t| t == table_id).unwrap_or(false) {
+            ret.push(client.sender.clone());
+        }
+    }
+    return ret;
+}
+
+fn send_text_to_list<S: Into<String> + std::fmt::Display>(
+    destinations: Vec<ClientChannel>,
+    msg: S,
+) {
+    let wrapped = Message::text(msg);
+    for dest in destinations {
+        dest.send(wrapped.clone()).unwrap();
+    }
+}
+
+impl Connection {
     pub async fn run_user(&self, ws: WebSocket) {
         let (mut user_ws_tx, mut user_ws_rx) = ws.split();
 
@@ -35,7 +72,14 @@ impl Client {
             }
         });
 
-        ADDRS.insert(self.id, tx);
+        CLIENTS.insert(
+            self.id,
+            Client {
+                sender: tx,
+                pub_id: None,
+                table_id: None,
+            },
+        );
 
         while let Some(result) = user_ws_rx.next().await {
             let msg = match result {
@@ -56,28 +100,82 @@ impl Client {
     }
 
     async fn send_text<S: Into<String> + std::fmt::Display>(&self, msg: S) {
-        if let Some(tx) = ADDRS.get(&self.id) {
+        if let Some(client) = CLIENTS.get(&self.id) {
             debug!("send_text: {}", msg);
-            tx.send(Message::text(msg)).unwrap();
+            client.sender.send(Message::text(msg)).unwrap();
         };
     }
 
-    async fn leave_pub<'a>(&self, conn: &mut DbConnection<'a>) -> Result<()> {
-        Person::leave_pub(conn, self.id).await
+    async fn get_self<'a>(&self, conn: &mut DbConnection<'a>) -> String {
+        serde_json::to_string(&Response::Person {
+            data: Person::load_from_db(conn, self.id).await.unwrap(),
+        })
+        .unwrap()
     }
 
-    async fn leave_table<'a>(&self, conn: &mut DbConnection<'a>) -> Result<()> {
-        Person::leave_table(conn, self.id).await
+    async fn set_pub<'a>(&self, conn: &mut DbConnection<'a>, pub_id: Option<Uuid>) {
+        if let Some(mut client) = CLIENTS.get_mut(&self.id) {
+            if client.table_id.is_some() {
+                Person::leave_table(conn, self.id).await.unwrap();
+                client.table_id = None;
+            }
+            if let Some(unwrapped_pub_id) = pub_id {
+                Person::set_pub(conn, self.id, unwrapped_pub_id)
+                    .await
+                    .unwrap();
+            } else {
+                Person::leave_pub(conn, self.id).await.unwrap();
+            }
+            client.pub_id = pub_id;
+        }
+    }
+
+    async fn set_table<'a>(&self, conn: &mut DbConnection<'a>, table_id: Option<Uuid>) {
+        if let Some(mut client) = CLIENTS.get_mut(&self.id) {
+            if let Some(unwrapped_table_id) = table_id {
+                Person::set_table(conn, self.id, unwrapped_table_id)
+                    .await
+                    .unwrap();
+            } else {
+                Person::leave_table(conn, self.id).await.unwrap();
+            }
+
+            client.table_id = table_id;
+        }
+    }
+
+    async fn get_clients_in_pub(&self) -> Vec<ClientChannel> {
+        if let Some(client) = CLIENTS.get(&self.id) {
+            if let Some(pub_id) = client.pub_id {
+                return get_clients_in_pub(pub_id);
+            }
+        }
+        return vec![];
+    }
+
+    async fn get_clients_in_table(&self) -> Vec<ClientChannel> {
+        if let Some(client) = CLIENTS.get(&self.id) {
+            if let Some(table_id) = client.table_id {
+                return get_clients_in_table(table_id);
+            }
+        }
+        return vec![];
     }
 
     async fn return_self<'a>(&self, conn: &mut DbConnection<'a>) {
-        self.send_text(
-            serde_json::to_string(&Response::Person {
-                data: Person::load_from_db(conn, self.id).await.unwrap(),
-            })
-            .unwrap(),
-        )
-        .await;
+        self.send_text(self.get_self(conn).await).await;
+    }
+
+    async fn return_self_to_list<'a>(
+        &self,
+        conn: &mut DbConnection<'a>,
+        destinations: Vec<ClientChannel>,
+    ) {
+        if destinations.len() == 0 {
+            self.return_self(conn).await;
+        } else {
+            send_text_to_list(destinations, self.get_self(conn).await);
+        }
     }
 
     async fn send_tables<'a>(&self, conn: &mut DbConnection<'a>, pub_id: Uuid) {
@@ -108,15 +206,13 @@ impl Client {
                             self.send_text(pubs).await;
                         }
                         Command::CreatePub { name } => {
-                            self.leave_table(&mut conn).await.unwrap();
-                            self.leave_pub(&mut conn).await.unwrap();
                             let pub_id = Uuid::new_v4();
                             let new_pub = Pub {
                                 id: pub_id,
                                 name: name.clone(),
                             };
                             new_pub.add_pub(&mut conn).await.unwrap();
-                            Person::set_pub(&mut conn, self.id, pub_id).await.unwrap();
+                            self.set_pub(&mut conn, Some(pub_id)).await;
                             self.send_text(
                                 serde_json::to_string(&Response::CreatePub {
                                     data: PubWithPeople {
@@ -139,15 +235,12 @@ impl Client {
                             self.send_text(pubs).await;
                         }
                         Command::JoinPub { pub_id } => {
-                            // Only allowed to be in one pub
-                            self.leave_table(&mut conn).await.unwrap();
-                            self.leave_pub(&mut conn).await.unwrap();
-                            Person::set_pub(&mut conn, self.id, pub_id).await.unwrap();
-                            self.return_self(&mut conn).await;
+                            self.set_pub(&mut conn, Some(pub_id)).await;
+                            self.return_self_to_list(&mut conn, get_clients_in_pub(pub_id))
+                                .await;
                             self.send_tables(&mut conn, pub_id).await;
                         }
                         Command::CreateTable { pub_id, name } => {
-                            self.leave_table(&mut conn).await.unwrap();
                             let table_id = Uuid::new_v4();
                             let new_table = PubTable {
                                 id: table_id,
@@ -155,9 +248,7 @@ impl Client {
                                 name: name.clone(),
                             };
                             new_table.add_table(&mut conn).await.unwrap();
-                            Person::set_table(&mut conn, self.id, table_id)
-                                .await
-                                .unwrap();
+                            self.set_table(&mut conn, Some(table_id)).await;
                             self.send_text(
                                 serde_json::to_string(&Response::CreateTable {
                                     data: TableWithPeople {
@@ -173,35 +264,43 @@ impl Client {
                             self.return_self(&mut conn).await;
                         }
                         Command::JoinTable { table_id } => {
-                            // Only allowed to be in one pub
-                            self.leave_table(&mut conn).await.unwrap();
-                            Person::set_table(&mut conn, self.id, table_id)
-                                .await
-                                .unwrap();
-
-                            self.return_self(&mut conn).await;
+                            self.set_table(&mut conn, Some(table_id)).await;
+                            self.return_self_to_list(&mut conn, get_clients_in_table(table_id))
+                                .await;
                         }
                         Command::LeavePub | Command::LeaveTable => {
-                            self.leave_table(&mut conn).await.unwrap();
                             if cmd == Command::LeavePub {
-                                self.leave_pub(&mut conn).await.unwrap();
+                                self.set_pub(&mut conn, None).await;
+                                self.return_self_to_list(
+                                    &mut conn,
+                                    self.get_clients_in_pub().await,
+                                )
+                                .await;
+                            } else {
+                                self.set_table(&mut conn, None).await;
+                                self.return_self_to_list(
+                                    &mut conn,
+                                    self.get_clients_in_table().await,
+                                )
+                                .await;
                             }
-                            self.return_self(&mut conn).await;
                         }
                         Command::ListTables { pub_id } => {
                             self.send_tables(&mut conn, pub_id).await;
                         }
                         Command::Send { user_id, content } => {
-                            match ADDRS.get(&user_id) {
-                                Some(addr) => {
-                                    addr.send(Message::text(
-                                        serde_json::to_string(&Response::Data {
-                                            author: self.id,
-                                            content,
-                                        })
-                                        .unwrap(),
-                                    ))
-                                    .unwrap();
+                            match CLIENTS.get(&user_id) {
+                                Some(client) => {
+                                    client
+                                        .sender
+                                        .send(Message::text(
+                                            serde_json::to_string(&Response::Data {
+                                                author: self.id,
+                                                content,
+                                            })
+                                            .unwrap(),
+                                        ))
+                                        .unwrap();
                                 }
                                 None => {
                                     println!("Can't send to {user_id}. Available addrs");
