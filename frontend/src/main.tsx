@@ -1,4 +1,4 @@
-import "./wdyr";
+// import "./wdyr";
 
 import { createRoot } from "react-dom/client";
 import App from "./App";
