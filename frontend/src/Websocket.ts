@@ -30,6 +30,8 @@ export const useWebsocket = () => {
       doMessage(websocket, conn, decoded);
     },
     filter: () => false,
+    retryOnError: true,
+    shouldReconnect: () => true,
   });
   return websocket;
 };
