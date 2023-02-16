@@ -8,14 +8,14 @@ pub type Pool = bb8::Pool<PostgresConnectionManager<NoTls>>;
 pub type DbConnection<'a> = bb8::PooledConnection<'a, PostgresConnectionManager<NoTls>>;
 
 #[derive(Clone)]
-pub struct Client {
+pub struct Connection {
     pub id: Uuid,
     pub pool: Pool,
 }
 
-impl std::fmt::Debug for Client {
+impl std::fmt::Debug for Connection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<Client {}>", self.id)
+        write!(f, "<Connection {}>", self.id)
     }
 }
 

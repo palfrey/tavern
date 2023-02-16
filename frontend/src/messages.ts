@@ -47,22 +47,16 @@ export type SocketMessage =
   | PersonMessage
   | DataMessage;
 
-function handleDataMsg(websocket: WS, peer: string, encoded_msg: string) {
+function handleDataMsg(
+  websocket: WS,
+  conn: RTCPeerConnection,
+  peer: string,
+  encoded_msg: string
+) {
   console.log("video msg from", peer, encoded_msg);
   const msg: RTCSessionDescription | RTCIceCandidate = JSON.parse(encoded_msg);
-  const conn = useUIStore((s) => {
-    if (peer in s.peers) {
-      return s.peers[peer];
-    } else {
-      return null;
-    }
-  });
-  if (conn === null) {
-    console.warn(`Don't have a connection for ${peer}`);
-    return;
-  }
   if (msg === null) {
-    console.log("Null video message from", peer);
+    console.warn("Null video message from", peer);
   } else if (msg.type == "offer") {
     conn.setRemoteDescription(msg);
     conn.createAnswer().then((answer) => {
@@ -76,13 +70,19 @@ function handleDataMsg(websocket: WS, peer: string, encoded_msg: string) {
   } else if ("candidate" in msg) {
     conn.addIceCandidate(msg);
   } else {
-    console.log("video msg from", peer, JSON.stringify(msg));
+    console.warn("video msg from", peer, JSON.stringify(msg));
   }
 }
 
-export const doMessage = (websocket: WS, message: SocketMessage) => {
+export const doMessage = (
+  websocket: WS,
+  conn: RTCPeerConnection | null,
+  message: SocketMessage
+) => {
+  console.debug("Parsing", message);
   switch (message.kind) {
     case "Pubs":
+      message.list.sort((a, b) => a.name.localeCompare(b.name));
       useUIStore.setState((s) => ({
         ...s,
         pubs: message.list,
@@ -119,7 +119,14 @@ export const doMessage = (websocket: WS, message: SocketMessage) => {
       break;
     }
     case "Data": {
-      handleDataMsg(websocket, message.author, message.content);
+      if (conn === null) {
+        console.warn(
+          `Don't have a connection for ${message.author}`,
+          JSON.stringify(message)
+        );
+        return;
+      }
+      handleDataMsg(websocket, conn, message.author, message.content);
       break;
     }
 

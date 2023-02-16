@@ -1,13 +1,12 @@
 import React from "react";
-import { leaveTable } from "./commands";
+import { leaveTable, WS } from "./commands";
 import { useUIStore } from "./Store";
 import { Videos } from "./Video";
-import { useWebsocket } from "./Websocket";
 
-export function Table() {
+export function Table({ websocket }: { websocket: WS }) {
   const currentPub = useUIStore((s) => s.currentPub());
   const currentTable = useUIStore((s) => s.currentTable());
-  const websocket = useWebsocket();
+  console.info("redo table", currentPub, currentTable, websocket);
   if (currentPub === null || currentTable == null) {
     // We'll nav away from here soon...
     return <React.Fragment />;
@@ -27,7 +26,7 @@ export function Table() {
       >
         Leave table
       </button>
-      <Videos />
+      <Videos websocket={websocket} />
     </div>
   );
 }

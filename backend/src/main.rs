@@ -4,7 +4,7 @@ mod error;
 mod migrations;
 mod types;
 
-use crate::types::{Client, Person};
+use crate::types::{Connection, Person};
 use log::info;
 use std::convert::Infallible;
 use std::io;
@@ -25,7 +25,7 @@ async fn websocket(id_str: String, ws: WebSocket, pool: types::Pool) {
     let conn = pool.get().await.unwrap();
     Person::add_person(&conn, id).await.unwrap();
     info!("Connected for {}", id_str);
-    Client {
+    Connection {
         id,
         pool: pool.clone(),
     }

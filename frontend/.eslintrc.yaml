@@ -2,6 +2,7 @@ root: true
 extends:
 - eslint:recommended
 - plugin:react/recommended
+- plugin:react-hooks/recommended
 - plugin:@typescript-eslint/recommended
 parser: '@typescript-eslint/parser'
 parserOptions:
@@ -11,5 +12,9 @@ plugins:
 - react
 - '@typescript-eslint'
 - require-prevent-default
-rules: {require-prevent-default/require-prevent-default: error, react/react-in-jsx-scope: off}
+rules:
+  require-prevent-default/require-prevent-default: error
+  react/react-in-jsx-scope: off
+  no-unused-vars: off
+  '@typescript-eslint/no-unused-vars': [error, varsIgnorePattern: ^_]
 ignorePatterns: [dist]

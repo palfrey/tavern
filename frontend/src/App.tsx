@@ -41,7 +41,7 @@ function App() {
       ping(websocket);
     }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [websocket]);
 
   useEffect(() => {
     if (mediaStream === null && newMediaStream.mediaStream !== null) {
@@ -65,9 +65,9 @@ function App() {
         return null;
       },
       children: [
-        { path: "Home", element: <Home /> },
-        { path: "Pub", element: <Pub /> },
-        { path: "Table", element: <Table /> },
+        { path: "Home", element: <Home websocket={websocket} /> },
+        { path: "Pub", element: <Pub websocket={websocket} /> },
+        { path: "Table", element: <Table websocket={websocket} /> },
         {
           path: "about",
           element: <About />,

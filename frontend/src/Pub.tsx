@@ -6,15 +6,14 @@ import {
   joinTable,
   leavePub,
   listTables,
+  WS,
 } from "./commands";
 import { useUIStore } from "./Store";
-import { useWebsocket } from "./Websocket";
 
-export function Pub() {
+export function Pub({ websocket }: { websocket: WS }) {
   const [tableName, setTableName] = useState("");
   const currentPub = useUIStore((s) => s.currentPub());
   const tables = useUIStore((s) => s.tables);
-  const websocket = useWebsocket();
   if (currentPub === null) {
     // We'll nav away from here soon...
     return <React.Fragment />;
@@ -50,6 +49,7 @@ export function Pub() {
             {table.name}
             <span>&nbsp;</span>
             <button
+              id={"join-" + table.name}
               className="btn btn-primary"
               onClick={(evt) => {
                 joinTable(websocket, table.id);
