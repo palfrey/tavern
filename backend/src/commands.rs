@@ -43,7 +43,7 @@ fn get_clients_in_table(table_id: Uuid) -> Vec<ClientChannel> {
 }
 
 fn send_text_to_list<S: Into<String> + std::fmt::Display>(
-    destinations: Vec<ClientChannel>,
+    destinations: &Vec<ClientChannel>,
     msg: S,
 ) {
     let wrapped = Message::text(msg);
@@ -113,7 +113,7 @@ impl Connection {
         .unwrap()
     }
 
-    async fn set_pub<'a>(&self, conn: &mut DbConnection<'a>, pub_id: Option<Uuid>) {
+    async fn set_pub<'a>(&self, conn: &mut DbConnection<'a>, pub_id: Option<Uuid>) -> Option<Uuid> {
         if let Some(mut client) = CLIENTS.get_mut(&self.id) {
             if client.table_id.is_some() {
                 Person::leave_table(conn, self.id).await.unwrap();
@@ -126,11 +126,19 @@ impl Connection {
             } else {
                 Person::leave_pub(conn, self.id).await.unwrap();
             }
+            let ret = client.pub_id;
             client.pub_id = pub_id;
+            ret
+        } else {
+            None
         }
     }
 
-    async fn set_table<'a>(&self, conn: &mut DbConnection<'a>, table_id: Option<Uuid>) {
+    async fn set_table<'a>(
+        &self,
+        conn: &mut DbConnection<'a>,
+        table_id: Option<Uuid>,
+    ) -> Option<Uuid> {
         if let Some(mut client) = CLIENTS.get_mut(&self.id) {
             if let Some(unwrapped_table_id) = table_id {
                 Person::set_table(conn, self.id, unwrapped_table_id)
@@ -140,30 +148,34 @@ impl Connection {
                 Person::leave_table(conn, self.id).await.unwrap();
             }
 
+            let ret = client.table_id;
             client.table_id = table_id;
+            ret
+        } else {
+            None
         }
-    }
-
-    async fn get_clients_in_pub(&self) -> Vec<ClientChannel> {
-        if let Some(client) = CLIENTS.get(&self.id) {
-            if let Some(pub_id) = client.pub_id {
-                return get_clients_in_pub(pub_id);
-            }
-        }
-        return vec![];
-    }
-
-    async fn get_clients_in_table(&self) -> Vec<ClientChannel> {
-        if let Some(client) = CLIENTS.get(&self.id) {
-            if let Some(table_id) = client.table_id {
-                return get_clients_in_table(table_id);
-            }
-        }
-        return vec![];
     }
 
     async fn return_self<'a>(&self, conn: &mut DbConnection<'a>) {
         self.send_text(self.get_self(conn).await).await;
+    }
+
+    async fn tell_pub_about_self<'a>(&self, conn: &mut DbConnection<'a>) {
+        if let Some(client) = CLIENTS.get(&self.id) {
+            if let Some(pub_id) = client.pub_id {
+                let destinations = get_clients_in_pub(pub_id);
+                if destinations.len() == 0 {
+                    self.return_self(conn).await;
+                } else {
+                    send_text_to_list(&destinations, self.get_self(conn).await);
+                    let tables = serde_json::to_string(&Response::Tables {
+                        list: PubTable::get_tables(conn, pub_id).await.unwrap(),
+                    })
+                    .unwrap();
+                    send_text_to_list(&destinations, tables);
+                }
+            }
+        }
     }
 
     async fn return_self_to_list<'a>(
@@ -174,7 +186,7 @@ impl Connection {
         if destinations.len() == 0 {
             self.return_self(conn).await;
         } else {
-            send_text_to_list(destinations, self.get_self(conn).await);
+            send_text_to_list(&destinations, self.get_self(conn).await);
         }
     }
 
@@ -235,9 +247,13 @@ impl Connection {
                             self.send_text(pubs).await;
                         }
                         Command::JoinPub { pub_id } => {
-                            self.set_pub(&mut conn, Some(pub_id)).await;
+                            let old_pub = self.set_pub(&mut conn, Some(pub_id)).await;
                             self.return_self_to_list(&mut conn, get_clients_in_pub(pub_id))
                                 .await;
+                            if let Some(old_pub_id) = old_pub {
+                                self.return_self_to_list(&mut conn, get_clients_in_pub(old_pub_id))
+                                    .await;
+                            }
                             self.send_tables(&mut conn, pub_id).await;
                         }
                         Command::CreateTable { pub_id, name } => {
@@ -264,25 +280,37 @@ impl Connection {
                             self.return_self(&mut conn).await;
                         }
                         Command::JoinTable { table_id } => {
-                            self.set_table(&mut conn, Some(table_id)).await;
+                            let old_table = self.set_table(&mut conn, Some(table_id)).await;
                             self.return_self_to_list(&mut conn, get_clients_in_table(table_id))
                                 .await;
+                            self.tell_pub_about_self(&mut conn).await;
+                            if let Some(old_table_id) = old_table {
+                                self.return_self_to_list(
+                                    &mut conn,
+                                    get_clients_in_table(old_table_id),
+                                )
+                                .await;
+                            }
                         }
                         Command::LeavePub | Command::LeaveTable => {
                             if cmd == Command::LeavePub {
-                                self.set_pub(&mut conn, None).await;
-                                self.return_self_to_list(
-                                    &mut conn,
-                                    self.get_clients_in_pub().await,
-                                )
-                                .await;
+                                let old_pub = self.set_pub(&mut conn, None).await;
+                                if let Some(old_pub_id) = old_pub {
+                                    self.return_self_to_list(
+                                        &mut conn,
+                                        get_clients_in_pub(old_pub_id),
+                                    )
+                                    .await;
+                                }
                             } else {
-                                self.set_table(&mut conn, None).await;
-                                self.return_self_to_list(
-                                    &mut conn,
-                                    self.get_clients_in_table().await,
-                                )
-                                .await;
+                                let old_table = self.set_table(&mut conn, None).await;
+                                if let Some(old_table_id) = old_table {
+                                    self.return_self_to_list(
+                                        &mut conn,
+                                        get_clients_in_table(old_table_id),
+                                    )
+                                    .await;
+                                }
                             }
                         }
                         Command::ListTables { pub_id } => {
