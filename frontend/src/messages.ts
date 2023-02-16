@@ -56,7 +56,7 @@ function handleDataMsg(
   console.log("video msg from", peer, encoded_msg);
   const msg: RTCSessionDescription | RTCIceCandidate = JSON.parse(encoded_msg);
   if (msg === null) {
-    console.log("Null video message from", peer);
+    console.warn("Null video message from", peer);
   } else if (msg.type == "offer") {
     conn.setRemoteDescription(msg);
     conn.createAnswer().then((answer) => {
@@ -70,7 +70,7 @@ function handleDataMsg(
   } else if ("candidate" in msg) {
     conn.addIceCandidate(msg);
   } else {
-    console.log("video msg from", peer, JSON.stringify(msg));
+    console.warn("video msg from", peer, JSON.stringify(msg));
   }
 }
 
