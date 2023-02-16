@@ -10,3 +10,7 @@ https://blog.logrocket.com/create-an-async-crud-web-service-in-rust-with-warp/
 
 youtube-dl https://www.youtube.com/watch?v=6Xbe_mFr4rg
 ffmpeg -i test-card-f.mkv test-card-f.mjpeg
+
+https://stackoverflow.com/a/66111432/320546
+
+Janus? https://janus.conf.meetecho.com/
