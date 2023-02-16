@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
-import { send } from "./commands";
+import produce from "immer";
+import React, { useEffect, useMemo, useState } from "react";
+import { send, WS } from "./commands";
 import { useUIStore } from "./Store";
-import { useWebsocket } from "./Websocket";
 
 export function useMediaStreamWrapper() {
   const [ms, setMs] = useState<MediaStream | null>(null);
@@ -27,13 +27,19 @@ function VideoComponent({
   name,
   type,
   stream,
+  websocket,
 }: {
   name: string;
   type: "local" | "remote";
   stream: MediaProvider;
+  websocket: WS;
 }) {
-  const websocket = useWebsocket();
-  const [rtcpeer, setRtcpeer] = useState<RTCPeerConnection | null>(null);
+  const rtcpeer = useUIStore((s) => {
+    if (name in s.peers) {
+      return s.peers[name];
+    }
+    return null;
+  });
   const update = () => {
     const element = document.getElementById(name);
     if (element === null) {
@@ -45,7 +51,7 @@ function VideoComponent({
       return;
     }
 
-    console.debug("update video", name, type, rtcpeer);
+    console.info("update video", name, type, rtcpeer);
     if (type === "local") {
       element.srcObject = stream;
     } else {
@@ -57,39 +63,38 @@ function VideoComponent({
         const config = {
           iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
         };
+        console.info("Make peer");
         const conn = new RTCPeerConnection(config);
+        useUIStore.setState(
+          produce((s) => {
+            s.peers[name] = conn;
+          })
+        );
         const tracks = stream.getTracks();
+        console.info("tracks", tracks);
         for (const track of tracks) {
           conn.addTrack(track, stream);
-          conn.onicecandidate = (candidate) => {
-            console.warn("candidate", candidate);
-            if (candidate.candidate !== null) {
-              send(websocket, name, JSON.stringify(candidate.candidate));
-            }
-          };
-          conn.onnegotiationneeded = () => {
-            conn.createOffer().then((offer) => {
-              console.warn("offer", offer);
-              conn.setLocalDescription(offer).then(() => {
-                console.warn("local desc", conn.localDescription);
-                send(websocket, name, JSON.stringify(conn.localDescription));
-              });
-            });
-          };
-          conn.ontrack = (event) => {
-            const remoteStream = event.streams[0];
-            console.warn("ontrack", event, remoteStream);
-            element.srcObject = remoteStream;
-          };
         }
-        setRtcpeer(conn);
-        useUIStore.setState((s) => ({
-          ...s,
-          peers: {
-            ...s.peers,
-            name: conn,
-          },
-        }));
+        conn.onicecandidate = (candidate) => {
+          if (candidate.candidate !== null) {
+            console.info("candidate", candidate);
+            send(websocket, name, JSON.stringify(candidate.candidate));
+          }
+        };
+        conn.onnegotiationneeded = () => {
+          conn.createOffer().then((offer) => {
+            console.info("offer", offer);
+            conn.setLocalDescription(offer).then(() => {
+              console.info("local desc", conn.localDescription);
+              send(websocket, name, JSON.stringify(conn.localDescription));
+            });
+          });
+        };
+        conn.ontrack = (event) => {
+          const remoteStream = event.streams[0];
+          console.info("ontrack", event, remoteStream);
+          element.srcObject = remoteStream;
+        };
       }
     }
   };
@@ -97,9 +102,13 @@ function VideoComponent({
     update();
     return () => {
       console.debug("unmounting", name);
-      if (rtcpeer != null) {
+      if (rtcpeer != null && "close" in rtcpeer) {
         rtcpeer.close();
-        setRtcpeer(null);
+        useUIStore.setState(
+          produce((s) => {
+            s.peers.delete(name);
+          })
+        );
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -109,43 +118,48 @@ function VideoComponent({
 
 VideoComponent.displayName = "video-component";
 
-function getStreams() {
+function useStreams(websocket: WS) {
   const peerId = useUIStore((s) => s.peerId);
   const mediaStream = useUIStore((s) => s.mediaStream);
   const peers = useUIStore((s) =>
     (s.currentTable()?.persons ?? []).filter((p) => p != peerId)
   );
-  if (mediaStream === null) {
-    return [];
-  }
 
-  const ret = [
-    <VideoComponent
-      key={peerId}
-      name={peerId}
-      type="local"
-      stream={mediaStream}
-    />,
-  ];
-  ret.push(
-    ...peers.map((peer) => (
+  return useMemo(() => {
+    console.info("Make video component");
+    if (mediaStream === null) {
+      return [];
+    }
+    const ret = [
       <VideoComponent
-        key={peer}
-        name={peer}
-        type="remote"
+        key={peerId}
+        name={peerId}
+        type="local"
         stream={mediaStream}
-      />
-    ))
-  );
-  return ret;
+        websocket={websocket}
+      />,
+    ];
+    ret.push(
+      ...peers.map((peer) => (
+        <VideoComponent
+          key={peer}
+          name={peer}
+          type="remote"
+          stream={mediaStream}
+          websocket={websocket}
+        />
+      ))
+    );
+    return ret;
+  }, [peerId, mediaStream, peers, websocket]);
 }
 
-export function Videos() {
-  const streams = getStreams();
+export function Videos({ websocket }: { websocket: WS }) {
+  const streams = useStreams(websocket);
   const total = streams.length;
   const size = Math.ceil(total > 0 ? Math.sqrt(total) : 0);
-  console.log("size", size);
-  console.log("streams", streams);
+  console.info("size", size);
+  console.info("streams", streams);
   return (
     <table
       width="100%"

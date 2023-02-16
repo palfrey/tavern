@@ -1,12 +1,10 @@
 import { useState } from "react";
-import { createPub, deletePub, joinPub, listPubs } from "./commands";
+import { createPub, deletePub, joinPub, listPubs, WS } from "./commands";
 import { useUIStore } from "./Store";
-import { useWebsocket } from "./Websocket";
 
-export default function Home() {
+export default function Home({ websocket }: { websocket: WS }) {
   const [pubName, setPubName] = useState("");
   const pubs = useUIStore((s) => s.pubs);
-  const websocket = useWebsocket();
   return (
     <div>
       <h1>Tavern</h1>
