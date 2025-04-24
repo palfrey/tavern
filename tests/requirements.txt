@@ -29,7 +29,7 @@ exceptiongroup==1.1.0
     # via
     #   pytest
     #   trio
-h11==0.14.0
+h11==0.16.0
     # via wsproto
 idna==3.4
     # via trio
