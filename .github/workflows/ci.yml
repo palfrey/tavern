@@ -37,11 +37,6 @@ jobs:
     - uses: actions/checkout@v3
     - name: Install asdf & tools
       uses: asdf-vm/actions/install@v4
-    - uses: actions/setup-node@v3
-      with:
-        node-version: 14
-        cache: pnpm
-        cache-dependency-path: frontend/pnpm-lock.yaml
     - name: Install packages
       run: cd frontend && pnpm install
     - name: Lint
