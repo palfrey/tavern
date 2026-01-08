@@ -26,6 +26,9 @@ services:
     restart: unless-stopped
     ports:
     - 9000:9000
+    environment:
+      # See https://vite.dev/config/server-options#server-allowedhosts
+      __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS: "frontend"
   nginx:
     image: nginx:1.19.1
     volumes:

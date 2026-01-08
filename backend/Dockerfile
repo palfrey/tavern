@@ -1,4 +1,4 @@
-FROM rust:1.67-slim-buster
+FROM rust:1.92.0-slim-trixie
 WORKDIR /work
 RUN apt-get update && apt-get install -y wget libpq-dev
 RUN wget https://raw.githubusercontent.com/vishnubob/wait-for-it/9995b721327eac7a88f0dce314ea074d5169634f/wait-for-it.sh && \

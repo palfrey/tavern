@@ -60,4 +60,4 @@ jobs:
       env:
         COMPOSE_FILE: docker-compose.yml:docker-compose.tests.yml
       run: |
-        docker-compose up --build --exit-code-from ui-tests
+        docker compose up --build --exit-code-from ui-tests
