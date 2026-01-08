@@ -20,7 +20,9 @@ services:
     - 5000:5000
     restart: unless-stopped
   frontend:
-    build: frontend
+    build: 
+      dockerfile: frontend/Dockerfile
+      context: . 
     restart: unless-stopped
     ports:
     - 9000:9000
