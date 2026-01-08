@@ -59,7 +59,10 @@ async fn main() -> io::Result<()> {
             let mut conn = thread_pool.get().await.unwrap();
             Person::cleanup_outdated(&mut conn).await.unwrap();
             info!("Cleanup done");
-            if timeout(Duration::from_secs(60), thread_notifier.notified()).await.is_ok() { 
+            if timeout(Duration::from_secs(60), thread_notifier.notified())
+                .await
+                .is_ok()
+            {
                 break;
             }
         }
