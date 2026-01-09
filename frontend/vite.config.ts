@@ -1,5 +1,5 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
 export default defineConfig({
@@ -15,7 +15,7 @@ export default defineConfig({
       "~bootstrap": path.resolve(__dirname, "node_modules/bootstrap"),
     },
   },
-  plugins: [react()],
+  plugins: [react({})],
   build: {
     sourcemap: true,
   },

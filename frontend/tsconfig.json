@@ -9,18 +9,17 @@
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "module": "ESNext",
-    "moduleResolution": "Node",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "types": ["node", "jest", "@types/jest"],
+    "types": ["node", "jest"],
     "typeRoots": [
       "./node_modules/@types/"
     ]
   },
-  "include": ["src", "vite.config.ts", "jest.config.ts"],
+  "include": ["src", "jest.config.ts", "vite.config.ts"],
   "exclude": ["node_modules", "dist"],
-  "references": [{ "path": "./tsconfig.node.json" }]
 }

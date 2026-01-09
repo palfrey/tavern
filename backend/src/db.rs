@@ -51,7 +51,7 @@ impl Person {
         let rows = conn
             .query("SELECT * FROM person WHERE person.id = $1", &[&person_id])
             .await?;
-        let row = rows.get(0).unwrap();
+        let row = rows.first().unwrap();
         Ok(Person {
             id: row.get("id"),
             name: row.get("name"),
@@ -209,7 +209,7 @@ impl PubTable {
                     &[&table_id],
                 )
                 .await?;
-            Ok(pubs.get(0).unwrap().get("pub_id"))
+            Ok(pubs.first().unwrap().get("pub_id"))
         } else {
             warn!(
                 "Not deleting {table_id} because there's still {} in it",
@@ -218,7 +218,7 @@ impl PubTable {
             let pubs = conn
                 .query("SELECT pub_id FROM pub_table WHERE id = $1", &[&table_id])
                 .await?;
-            Ok(pubs.get(0).unwrap().get("pub_id"))
+            Ok(pubs.first().unwrap().get("pub_id"))
         }
     }
 }

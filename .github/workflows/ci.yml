@@ -35,15 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - name: Install pnpm script
-      run: |
-        mkdir /home/runner/.local/bin
-        cp frontend/pnpm ~/.local/bin
-    - uses: actions/setup-node@v3
-      with:
-        node-version: 14
-        cache: pnpm
-        cache-dependency-path: frontend/pnpm-lock.yaml
+    - name: Install asdf & tools
+      uses: asdf-vm/actions/install@v4
     - name: Install packages
       run: cd frontend && pnpm install
     - name: Lint
@@ -62,4 +55,4 @@ jobs:
       env:
         COMPOSE_FILE: docker-compose.yml:docker-compose.tests.yml
       run: |
-        docker-compose up --build --exit-code-from ui-tests
+        docker compose up --build --exit-code-from ui-tests
