@@ -15,7 +15,7 @@ export default defineConfig({
       "~bootstrap": path.resolve(__dirname, "node_modules/bootstrap"),
     },
   },
-  plugins: [react()],
+  plugins: [react({})],
   build: {
     sourcemap: true,
   },
