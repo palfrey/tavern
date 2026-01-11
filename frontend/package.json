@@ -29,7 +29,7 @@
     "@types/node": "^25",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "@types/uuid": "^8.3.4",
+    "@types/uuid": "^11.0.0",
     "@types/websocket": "^1.0.5",
     "@typescript-eslint/eslint-plugin": "^8",
     "@typescript-eslint/parser": "^8",
