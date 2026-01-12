@@ -17,7 +17,7 @@ bb8 = "0.8"
 bb8-postgres = "0.8"
 log = "0.4"
 env_logger = "0.10"
-dashmap = "5"
+dashmap = "6"
 
 [dependencies.refinery]
 version = "0.8"
