@@ -44,7 +44,7 @@ typing-extensions==4.4.0
     # via
     #   importlib-metadata
     #   platformdirs
-virtualenv==20.26.6
+virtualenv==20.36.1
     # via pre-commit
 wheel==0.38.4
     # via pip-tools
