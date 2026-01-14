@@ -36,8 +36,8 @@ importers:
         specifier: ^9.0.0
         version: 9.0.3
       zustand:
-        specifier: 4.1.4
-        version: 4.1.4(immer@9.0.21)(react@19.2.3)
+        specifier: 5.0.10
+        version: 5.0.10(@types/react@19.2.8)(immer@9.0.21)(react@19.2.3)(use-sync-external-store@1.2.0(react@19.2.3))
     devDependencies:
       '@jest/globals':
         specifier: ^30.0.0
@@ -3233,16 +3233,22 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
-  zustand@4.1.4:
-    resolution: {integrity: sha512-k2jVOlWo8p4R83mQ+/uyB8ILPO2PCJOf+QVjcL+1PbMCk1w5OoPYpAIxy9zd93FSfmJqoH6lGdwzzjwqJIRU5A==}
-    engines: {node: '>=12.7.0'}
+  zustand@5.0.10:
+    resolution: {integrity: sha512-U1AiltS1O9hSy3rul+Ub82ut2fqIAefiSuwECWt6jlMVUGejvf+5omLcRBSzqbRagSM3hQZbtzdeRc6QVScXTg==}
+    engines: {node: '>=12.20.0'}
     peerDependencies:
-      immer: '>=9.0'
-      react: '>=16.8'
+      '@types/react': '>=18.0.0'
+      immer: '>=9.0.6'
+      react: '>=18.0.0'
+      use-sync-external-store: '>=1.2.0'
     peerDependenciesMeta:
+      '@types/react':
+        optional: true
       immer:
         optional: true
       react:
+        optional: true
+      use-sync-external-store:
         optional: true
 
 snapshots:
@@ -6593,6 +6599,7 @@ snapshots:
   use-sync-external-store@1.2.0(react@19.2.3):
     dependencies:
       react: 19.2.3
+    optional: true
 
   uuid@13.0.0: {}
 
@@ -6736,9 +6743,9 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zustand@4.1.4(immer@9.0.21)(react@19.2.3):
-    dependencies:
-      use-sync-external-store: 1.2.0(react@19.2.3)
+  zustand@5.0.10(@types/react@19.2.8)(immer@9.0.21)(react@19.2.3)(use-sync-external-store@1.2.0(react@19.2.3)):
     optionalDependencies:
+      '@types/react': 19.2.8
       immer: 9.0.21
       react: 19.2.3
+      use-sync-external-store: 1.2.0(react@19.2.3)
