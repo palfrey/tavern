@@ -24,7 +24,7 @@ importlib-metadata==8.7.1
     #   virtualenv
 nodeenv==1.7.0
     # via pre-commit
-packaging==25.0
+packaging==26.0
     # via build
 pip-tools==7.5.2
     # via -r requirements.in
